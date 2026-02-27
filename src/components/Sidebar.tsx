@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/StoreContext';
-import { Book, Plus, ChevronLeft, ChevronRight, Download, Upload, Trash2, Edit2, GripVertical, Check, X } from 'lucide-react';
+import { Book, Plus, ChevronLeft, ChevronRight, Download, Upload, Trash2, Edit2, GripVertical, Check, X, Menu } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { cn } from '../lib/utils';
 
-export function Sidebar() {
+export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, setMobileOpen?: (open: boolean) => void }) {
   const { state, dispatch } = useStore();
   const [collapsed, setCollapsed] = useState(false);
   const [newWorkTitle, setNewWorkTitle] = useState('');
@@ -73,19 +73,36 @@ export function Sidebar() {
   };
 
   return (
-    <div className={cn(
-      "h-screen bg-stone-900 text-stone-300 flex flex-col transition-all duration-300 border-r border-stone-800",
-      collapsed ? "w-16" : "w-64"
-    )}>
-      <div className="p-4 flex items-center justify-between border-b border-stone-800">
-        {!collapsed && <span className="font-semibold text-stone-100 tracking-wide uppercase text-sm">Works</span>}
-        <button 
-          onClick={() => setCollapsed(!collapsed)}
-          className="p-1 hover:bg-stone-800 rounded-md text-stone-400 hover:text-stone-100 transition-colors"
-        >
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        </button>
-      </div>
+    <>
+      {/* Mobile Overlay */}
+      {mobileOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setMobileOpen?.(false)}
+        />
+      )}
+
+      <div className={cn(
+        "h-screen bg-stone-900 text-stone-300 flex flex-col transition-all duration-300 border-r border-stone-800 z-50",
+        collapsed ? "w-16" : "w-64",
+        "fixed md:relative", // Fixed on mobile, relative on desktop
+        mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0" // Slide in on mobile
+      )}>
+        <div className="p-4 flex items-center justify-between border-b border-stone-800">
+          {!collapsed && <span className="font-semibold text-stone-100 tracking-wide uppercase text-sm">Works</span>}
+          <button 
+            onClick={() => setCollapsed(!collapsed)}
+            className="p-1 hover:bg-stone-800 rounded-md text-stone-400 hover:text-stone-100 transition-colors hidden md:block"
+          >
+            {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          </button>
+          <button 
+            onClick={() => setMobileOpen?.(false)}
+            className="p-1 hover:bg-stone-800 rounded-md text-stone-400 hover:text-stone-100 transition-colors md:hidden"
+          >
+            <X size={18} />
+          </button>
+        </div>
 
       <div className="flex-1 overflow-y-auto py-4">
         <DragDropContext onDragEnd={onDragEnd}>
@@ -115,7 +132,10 @@ export function Sidebar() {
                         
                         <div 
                           className="flex-1 flex items-center min-w-0 cursor-pointer"
-                          onClick={() => dispatch({ type: 'SET_ACTIVE_WORK', payload: work.id })}
+                          onClick={() => {
+                            dispatch({ type: 'SET_ACTIVE_WORK', payload: work.id });
+                            setMobileOpen?.(false);
+                          }}
                         >
                           <Book size={16} className={cn("shrink-0", collapsed ? "mx-auto" : "mr-3")} />
                           {!collapsed && (
@@ -221,5 +241,6 @@ export function Sidebar() {
         </div>
       )}
     </div>
+    </>
   );
 }

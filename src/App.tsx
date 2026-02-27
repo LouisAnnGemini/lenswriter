@@ -8,16 +8,16 @@ import { LensesTab } from './components/LensesTab';
 import { CharactersTab } from './components/CharactersTab';
 import { Minimize2 } from 'lucide-react';
 
-function MainContent() {
+function MainContent({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, setMobileOpen: (open: boolean) => void }) {
   const { state, dispatch } = useStore();
 
   return (
-    <div className="flex-1 flex flex-col h-screen overflow-hidden bg-white">
-      <TopNav />
+    <div className="flex-1 flex flex-col h-screen overflow-hidden bg-white relative">
+      <TopNav setMobileOpen={setMobileOpen} />
       <div className="flex-1 flex overflow-hidden">
         {state.activeTab === 'writing' && (
           <>
-            <OutlinePanel />
+            <OutlinePanel setMobileOpen={setMobileOpen} />
             <EditorPanel />
           </>
         )}
@@ -39,11 +39,13 @@ function MainContent() {
 }
 
 export default function App() {
+  const [mobileOpen, setMobileOpen] = React.useState(false);
+
   return (
     <StoreProvider>
       <div className="flex h-screen w-full overflow-hidden font-sans text-stone-900 bg-stone-900 selection:bg-emerald-200 selection:text-emerald-900">
-        <Sidebar />
-        <MainContent />
+        <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+        <MainContent mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
       </div>
     </StoreProvider>
   );

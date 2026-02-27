@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/StoreContext';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { Users, Plus, GripVertical, User, MapPin } from 'lucide-react';
+import { Users, Plus, GripVertical, User, MapPin, ChevronLeft } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function CharactersTab() {
@@ -12,7 +12,7 @@ export function CharactersTab() {
   if (!activeWorkId) return <div className="flex-1 flex items-center justify-center text-stone-400">Select a work</div>;
 
   const characters = state.characters.filter(c => c.workId === activeWorkId).sort((a, b) => a.order - b.order);
-  const activeChar = characters.find(c => c.id === activeCharId) || characters[0];
+  const activeChar = characters.find(c => c.id === activeCharId);
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -55,7 +55,10 @@ export function CharactersTab() {
   return (
     <div className="flex-1 flex overflow-hidden bg-white">
       {/* Sidebar List */}
-      <div className="w-72 border-r border-stone-200 bg-stone-50/50 flex flex-col h-full">
+      <div className={cn(
+        "border-r border-stone-200 bg-stone-50/50 flex flex-col h-full transition-all duration-300",
+        activeChar ? "hidden md:flex w-72" : "w-full md:w-72"
+      )}>
         <div className="p-4 border-b border-stone-200 flex items-center justify-between">
           <h3 className="font-semibold text-stone-900 flex items-center text-sm uppercase tracking-wider">
             <Users size={16} className="mr-2 text-stone-400" />
@@ -109,10 +112,17 @@ export function CharactersTab() {
 
       {/* Detail View */}
       {activeChar ? (
-        <div className="flex-1 overflow-y-auto p-8 lg:p-12 xl:p-24 bg-white">
-          <div className="max-w-3xl mx-auto space-y-12">
+        <div className="flex-1 overflow-y-auto p-4 lg:p-12 xl:p-24 bg-white pb-24 md:pb-12">
+          <div className="max-w-3xl mx-auto space-y-8 md:space-y-12">
             {/* Header */}
             <div>
+              <button 
+                className="md:hidden mb-4 flex items-center text-stone-500 hover:text-stone-900"
+                onClick={() => setActiveCharId(null)}
+              >
+                <ChevronLeft size={20} className="mr-1" />
+                Back to List
+              </button>
               <input
                 type="text"
                 value={activeChar.name}
@@ -191,7 +201,7 @@ export function CharactersTab() {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center text-stone-400">
+        <div className="hidden md:flex flex-1 flex-col items-center justify-center text-stone-400">
           <Users size={48} className="mb-4 opacity-20" />
           <p>Select or create a character to view details.</p>
         </div>

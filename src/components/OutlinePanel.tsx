@@ -4,14 +4,14 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { FileText, Folder, GripVertical, Plus, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-export function OutlinePanel() {
+export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean) => void }) {
   const { state, dispatch } = useStore();
   const [viewMode, setViewMode] = useState<'outline' | 'default' | 'scenes'>('default');
 
   if (state.focusMode) return null;
 
   const activeWorkId = state.activeWorkId;
-  if (!activeWorkId) return <div className="w-64 border-r border-stone-200 bg-stone-50 p-4 text-stone-500 text-sm">Select a work</div>;
+  if (!activeWorkId) return <div className="w-full md:w-64 border-r border-stone-200 bg-stone-50 p-4 text-stone-500 text-sm">Select a work</div>;
 
   const chapters = state.chapters.filter(c => c.workId === activeWorkId).sort((a, b) => a.order - b.order);
   const scenes = state.scenes.filter(s => chapters.some(c => c.id === s.chapterId));
@@ -55,7 +55,10 @@ export function OutlinePanel() {
   };
 
   return (
-    <div className="w-72 border-r border-stone-200 bg-stone-50/50 flex flex-col h-full">
+    <div className={cn(
+      "border-r border-stone-200 bg-stone-50/50 flex flex-col h-full transition-all duration-300",
+      state.activeDocumentId ? "hidden md:flex w-72" : "w-full md:w-72"
+    )}>
       <div className="p-4 border-b border-stone-200">
         <div className="flex bg-stone-200/50 p-1 rounded-lg">
           {(['outline', 'default', 'scenes'] as const).map(mode => (
@@ -98,8 +101,11 @@ export function OutlinePanel() {
                           </div>
                           <Folder size={14} className="mr-2 text-stone-400" />
                           <span 
-                            className="flex-1 truncate cursor-pointer"
-                            onClick={() => dispatch({ type: 'SET_ACTIVE_DOCUMENT', payload: chapter.id })}
+                            className="flex-1 cursor-pointer whitespace-normal break-words text-xs md:text-sm"
+                            onClick={() => {
+                              dispatch({ type: 'SET_ACTIVE_DOCUMENT', payload: chapter.id });
+                              setMobileOpen?.(false);
+                            }}
                           >
                             {chapter.title}
                           </span>
@@ -129,13 +135,16 @@ export function OutlinePanel() {
                       "flex items-center justify-between p-2 rounded-md text-sm font-medium group cursor-pointer",
                       state.activeDocumentId === chapter.id ? "bg-emerald-50 text-emerald-900" : "text-stone-900 hover:bg-stone-100"
                     )}
-                    onClick={() => dispatch({ type: 'SET_ACTIVE_DOCUMENT', payload: chapter.id })}
+                    onClick={() => {
+                      dispatch({ type: 'SET_ACTIVE_DOCUMENT', payload: chapter.id });
+                      setMobileOpen?.(false);
+                    }}
                   >
-                    <div className="flex items-center">
-                      <Folder size={14} className="mr-2 text-stone-400" />
-                      <span className="truncate">{chapter.title}</span>
+                    <div className="flex items-center flex-1 min-w-0">
+                      <Folder size={14} className="mr-2 text-stone-400 shrink-0" />
+                      <span className="whitespace-normal break-words text-xs md:text-sm">{chapter.title}</span>
                     </div>
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center space-x-1 shrink-0 ml-2">
                       <button 
                         onClick={(e) => { e.stopPropagation(); addScene(chapter.id); }}
                         className="opacity-0 group-hover:opacity-100 p-1 hover:bg-stone-200 rounded text-stone-50"
@@ -154,15 +163,18 @@ export function OutlinePanel() {
                     {scenes.filter(s => s.chapterId === chapter.id).sort((a, b) => a.order - b.order).map(scene => (
                       <div
                         key={scene.id}
-                        onClick={() => dispatch({ type: 'SET_ACTIVE_DOCUMENT', payload: scene.id })}
+                        onClick={() => {
+                          dispatch({ type: 'SET_ACTIVE_DOCUMENT', payload: scene.id });
+                          setMobileOpen?.(false);
+                        }}
                         className={cn(
                           "flex items-center justify-between p-1.5 rounded-md text-sm cursor-pointer transition-colors group/scene",
                           state.activeDocumentId === scene.id ? "bg-emerald-50 text-emerald-900 font-medium" : "text-stone-600 hover:bg-stone-100"
                         )}
                       >
-                        <div className="flex items-center truncate">
-                          <FileText size={12} className="mr-2 text-stone-400" />
-                          <span className="truncate">{scene.title}</span>
+                        <div className="flex items-center flex-1 min-w-0">
+                          <FileText size={12} className="mr-2 text-stone-400 shrink-0" />
+                          <span className="whitespace-normal break-words text-xs md:text-sm">{scene.title}</span>
                         </div>
                         <button 
                           onClick={(e) => { e.stopPropagation(); if(confirm('Delete this scene?')) dispatch({ type: 'DELETE_SCENE', payload: scene.id }); }}
@@ -226,8 +238,11 @@ export function OutlinePanel() {
                                     {chapIndexNum}-{sceneIndexNum}
                                   </span>
                                   <span 
-                                    className="flex-1 truncate cursor-pointer"
-                                    onClick={() => dispatch({ type: 'SET_ACTIVE_DOCUMENT', payload: scene.id })}
+                                    className="flex-1 cursor-pointer whitespace-normal break-words text-xs md:text-sm"
+                                    onClick={() => {
+                                      dispatch({ type: 'SET_ACTIVE_DOCUMENT', payload: scene.id });
+                                      setMobileOpen?.(false);
+                                    }}
                                   >
                                     {scene.title}
                                   </span>

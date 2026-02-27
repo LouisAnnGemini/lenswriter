@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/StoreContext';
-import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check } from 'lucide-react';
+import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check, ChevronLeft } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const LENS_COLORS = {
@@ -49,7 +49,7 @@ export function EditorPanel() {
 
   if (!document) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-stone-400 bg-white">
+      <div className="hidden md:flex flex-1 flex-col items-center justify-center text-stone-400 bg-white">
         <AlignLeft size={48} className="mb-4 opacity-20" />
         <p>Select a chapter or scene to start writing.</p>
       </div>
@@ -117,8 +117,11 @@ export function EditorPanel() {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-white overflow-hidden relative">
-      <div className="flex-1 overflow-y-auto px-8 py-12 lg:px-24 xl:px-48">
+    <div className={cn(
+      "flex-1 flex flex-col bg-white overflow-hidden relative transition-all duration-300",
+      !activeDocId ? "hidden md:flex" : "flex"
+    )}>
+      <div className="flex-1 overflow-y-auto px-4 py-8 md:px-8 md:py-12 lg:px-24 xl:px-48 pb-32 md:pb-12">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <input
@@ -131,7 +134,7 @@ export function EditorPanel() {
                   dispatch({ type: 'UPDATE_CHAPTER', payload: { id: activeDocId, title: e.target.value } });
                 }
               }}
-              className="flex-1 text-4xl font-serif font-semibold text-stone-900 outline-none placeholder:text-stone-300 bg-transparent"
+              className="flex-1 text-2xl md:text-4xl font-serif font-semibold text-stone-900 outline-none placeholder:text-stone-300 bg-transparent whitespace-normal break-words"
               placeholder="Untitled..."
             />
             {isScene ? (
@@ -230,10 +233,9 @@ export function EditorPanel() {
                         return (
                           <div key={scene.id} className="flex items-start space-x-3">
                             <span className="text-xs font-mono text-stone-500 bg-stone-200 px-1.5 py-0.5 rounded mt-0.5 shrink-0">{sceneIndex}</span>
-                            <input
-                              type="text"
+                            <AutoResizeTextarea
                               value={scene.characterNotes?.[charId] || ''}
-                              onChange={(e) => dispatch({ type: 'UPDATE_SCENE_CHARACTER_NOTE', payload: { sceneId: scene.id, characterId: charId, note: e.target.value } })}
+                              onChange={(e: any) => dispatch({ type: 'UPDATE_SCENE_CHARACTER_NOTE', payload: { sceneId: scene.id, characterId: charId, note: e.target.value } })}
                               placeholder={`Notes for ${char.name} in this scene...`}
                               className="flex-1 bg-transparent text-sm text-stone-700 outline-none border-b border-transparent focus:border-emerald-300 transition-colors"
                             />

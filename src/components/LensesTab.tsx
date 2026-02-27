@@ -72,21 +72,21 @@ export function LensesTab() {
   return (
     <div className="flex-1 flex overflow-hidden bg-stone-50/50">
       {/* Lenses Grid */}
-      <div className={cn("flex-1 overflow-y-auto p-6 transition-all", selectedLensId ? "pr-96" : "")}>
+      <div className={cn("flex-1 overflow-y-auto p-4 md:p-6 transition-all pb-24 md:pb-6", selectedLensId ? "hidden md:block md:pr-96" : "")}>
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 space-y-4 md:space-y-0">
             <div>
               <h2 className="text-2xl font-serif font-semibold text-stone-900">Color Lenses</h2>
               <p className="text-sm text-stone-500 mt-1">Global summary of all highlighted information.</p>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4 w-full md:w-auto">
               {/* Chapter Filter */}
-              <div className="flex items-center space-x-2 bg-white border border-stone-200 rounded-lg px-3 py-1.5 shadow-sm">
-                <Filter size={14} className="text-stone-400" />
+              <div className="flex items-center space-x-2 bg-white border border-stone-200 rounded-lg px-3 py-2 md:py-1.5 shadow-sm w-full md:w-auto">
+                <Filter size={14} className="text-stone-400 shrink-0" />
                 <select 
                   value={filterChapterId}
                   onChange={(e) => setFilterChapterId(e.target.value)}
-                  className="text-xs font-medium bg-transparent border-none outline-none text-stone-600 cursor-pointer"
+                  className="text-xs font-medium bg-transparent border-none outline-none text-stone-600 cursor-pointer w-full md:w-auto"
                 >
                   <option value="all">All Chapters</option>
                   {workChapters.sort((a, b) => a.order - b.order).map(chap => (
@@ -96,17 +96,17 @@ export function LensesTab() {
               </div>
 
               {/* Color Filter */}
-              <div className="flex items-center space-x-2 bg-white border border-stone-200 rounded-lg px-3 py-1.5 shadow-sm">
+              <div className="flex items-center space-x-2 bg-white border border-stone-200 rounded-lg px-3 py-2 md:py-1.5 shadow-sm w-full md:w-auto">
                 <div 
                   className={cn(
-                    "w-3 h-3 rounded-full border border-black/10",
+                    "w-3 h-3 rounded-full border border-black/10 shrink-0",
                     filterColor === 'all' ? "bg-stone-200" : (filterColor === 'black' ? "bg-stone-900" : `bg-${filterColor === 'green' ? 'emerald' : (filterColor === 'yellow' ? 'amber' : filterColor)}-400`)
                   )} 
                 />
                 <select 
                   value={filterColor}
                   onChange={(e) => setFilterColor(e.target.value)}
-                  className="text-xs font-medium bg-transparent border-none outline-none text-stone-600 cursor-pointer"
+                  className="text-xs font-medium bg-transparent border-none outline-none text-stone-600 cursor-pointer w-full md:w-auto"
                 >
                   <option value="all">All Colors</option>
                   {Object.keys(LENS_COLORS).map(color => (
@@ -208,14 +208,14 @@ export function LensesTab() {
 
       {/* Detail Sidebar */}
       {selectedLensId && (
-        <div className="w-96 border-l border-stone-200 bg-white shadow-2xl fixed right-0 top-14 bottom-0 z-20 flex flex-col animate-in slide-in-from-right-8 duration-300">
+        <div className="w-full md:w-96 border-l border-stone-200 bg-white shadow-2xl fixed right-0 top-0 md:top-14 bottom-0 z-50 md:z-20 flex flex-col animate-in slide-in-from-right-8 duration-300 pb-safe">
           {(() => {
             const lens = lenses.find(l => l.id === selectedLensId);
             if (!lens) return null;
 
             return (
               <>
-                <div className="p-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+                <div className="p-4 border-b border-stone-100 flex items-center justify-between bg-stone-50/50 pt-safe-top">
                   <h3 className="font-semibold text-stone-900 flex items-center">
                     <Layers size={16} className="mr-2 text-stone-400" />
                     Lens Details
