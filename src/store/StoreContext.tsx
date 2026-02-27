@@ -40,7 +40,10 @@ type Action =
   | { type: 'DELETE_BLOCK'; payload: string }
   | { type: 'ADD_CHARACTER'; payload: { workId: string; name: string } }
   | { type: 'UPDATE_CHARACTER'; payload: { id: string; name?: string; description?: string } }
-  | { type: 'REORDER_CHARACTERS'; payload: { workId: string; startIndex: number; endIndex: number } };
+  | { type: 'REORDER_CHARACTERS'; payload: { workId: string; startIndex: number; endIndex: number } }
+  | { type: 'DELETE_CHAPTER'; payload: string }
+  | { type: 'DELETE_SCENE'; payload: string }
+  | { type: 'IMPORT_DATA'; payload: StoreState };
 
 const initialWorkId = uuidv4();
 const initialChapterId = uuidv4();
@@ -95,6 +98,19 @@ function storeReducer(state: StoreState, action: Action): StoreState {
     }
     case 'UPDATE_CHAPTER':
       return { ...state, chapters: state.chapters.map(c => c.id === action.payload.id ? { ...c, title: action.payload.title } : c) };
+    case 'DELETE_CHAPTER': {
+      const chapterId = action.payload;
+      const scenesToDelete = state.scenes.filter(s => s.chapterId === chapterId).map(s => s.id);
+      const docsToDelete = [chapterId, ...scenesToDelete];
+      
+      return {
+        ...state,
+        chapters: state.chapters.filter(c => c.id !== chapterId),
+        scenes: state.scenes.filter(s => s.chapterId !== chapterId),
+        blocks: state.blocks.filter(b => !docsToDelete.includes(b.documentId)),
+        activeDocumentId: state.activeDocumentId === chapterId || scenesToDelete.includes(state.activeDocumentId!) ? null : state.activeDocumentId
+      };
+    }
     case 'REORDER_CHAPTERS': {
       const { workId, startIndex, endIndex } = action.payload;
       const workChapters = state.chapters.filter(c => c.workId === workId).sort((a, b) => a.order - b.order);
@@ -113,6 +129,15 @@ function storeReducer(state: StoreState, action: Action): StoreState {
     }
     case 'UPDATE_SCENE':
       return { ...state, scenes: state.scenes.map(s => s.id === action.payload.id ? { ...s, title: action.payload.title } : s) };
+    case 'DELETE_SCENE': {
+      const sceneId = action.payload;
+      return {
+        ...state,
+        scenes: state.scenes.filter(s => s.id !== sceneId),
+        blocks: state.blocks.filter(b => b.documentId !== sceneId),
+        activeDocumentId: state.activeDocumentId === sceneId ? null : state.activeDocumentId
+      };
+    }
     case 'REORDER_SCENES': {
       const { chapterId, startIndex, endIndex } = action.payload;
       const chapterScenes = state.scenes.filter(s => s.chapterId === chapterId).sort((a, b) => a.order - b.order);
@@ -281,6 +306,9 @@ function storeReducer(state: StoreState, action: Action): StoreState {
         ...state,
         characters: state.characters.map(c => c.workId === workId ? updatedChars.find(uc => uc.id === c.id)! : c)
       };
+    }
+    case 'IMPORT_DATA': {
+      return action.payload;
     }
     default:
       return state;

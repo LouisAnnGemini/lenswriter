@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/StoreContext';
-import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon } from 'lucide-react';
+import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const LENS_COLORS = {
@@ -35,6 +35,7 @@ const AutoResizeTextarea = ({ value, onChange, className, placeholder }: any) =>
 
 export function EditorPanel() {
   const { state, dispatch } = useStore();
+  const [copied, setCopied] = useState(false);
   const activeDocId = state.activeDocumentId;
   const activeWorkId = state.activeWorkId;
 
@@ -43,6 +44,7 @@ export function EditorPanel() {
   
   const blocks = state.blocks.filter(b => b.documentId === activeDocId).sort((a, b) => a.order - b.order);
   const characters = state.characters.filter(c => c.workId === activeWorkId).sort((a, b) => a.order - b.order);
+  const chapters = state.chapters.filter(c => c.workId === activeWorkId).sort((a, b) => a.order - b.order);
 
   if (!document) {
     return (
@@ -96,6 +98,14 @@ export function EditorPanel() {
     }
   };
 
+  const handleCopyScene = () => {
+    const text = blocks.map(b => b.content).join('\n\n');
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   // Calculate chapter stats if it's a chapter
   let chapterCharacters: string[] = [];
   if (!isScene) {
@@ -109,19 +119,66 @@ export function EditorPanel() {
     <div className="flex-1 flex flex-col bg-white overflow-hidden relative">
       <div className="flex-1 overflow-y-auto px-8 py-12 lg:px-24 xl:px-48">
         <div className="max-w-3xl mx-auto">
-          <input
-            type="text"
-            value={document.title}
-            onChange={(e) => {
-              if (isScene) {
-                dispatch({ type: 'UPDATE_SCENE', payload: { id: activeDocId, title: e.target.value } });
-              } else {
-                dispatch({ type: 'UPDATE_CHAPTER', payload: { id: activeDocId, title: e.target.value } });
-              }
-            }}
-            className="w-full text-4xl font-serif font-semibold text-stone-900 mb-4 outline-none placeholder:text-stone-300 bg-transparent"
-            placeholder="Untitled..."
-          />
+          <div className="flex items-center justify-between mb-4">
+            <input
+              type="text"
+              value={document.title}
+              onChange={(e) => {
+                if (isScene) {
+                  dispatch({ type: 'UPDATE_SCENE', payload: { id: activeDocId, title: e.target.value } });
+                } else {
+                  dispatch({ type: 'UPDATE_CHAPTER', payload: { id: activeDocId, title: e.target.value } });
+                }
+              }}
+              className="flex-1 text-4xl font-serif font-semibold text-stone-900 outline-none placeholder:text-stone-300 bg-transparent"
+              placeholder="Untitled..."
+            />
+            {isScene ? (
+              <button
+                onClick={handleCopyScene}
+                className="ml-4 p-2 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"
+                title="Copy Scene Text"
+              >
+                {copied ? <Check size={20} className="text-emerald-600" /> : <Copy size={20} />}
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  if (confirm('Delete this chapter?')) {
+                    dispatch({ type: 'DELETE_CHAPTER', payload: activeDocId });
+                  }
+                }}
+                className="ml-4 p-2 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                title="Delete Chapter"
+              >
+                <Trash2 size={20} />
+              </button>
+            )}
+          </div>
+
+          {isScene && (
+            <div className="mb-12 flex items-center space-x-3">
+              <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Parent Chapter:</label>
+              <select
+                value={(document as any).chapterId}
+                onChange={(e) => {
+                  dispatch({ 
+                    type: 'MOVE_SCENE', 
+                    payload: { 
+                      sceneId: activeDocId, 
+                      newChapterId: e.target.value, 
+                      newIndex: 0 // Move to top of new chapter
+                    } 
+                  });
+                }}
+                className="text-sm bg-stone-100 border-none rounded-md px-3 py-1.5 text-stone-700 outline-none focus:ring-2 focus:ring-emerald-500/20"
+              >
+                {chapters.map(chap => (
+                  <option key={chap.id} value={chap.id}>{chap.title}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Character Binding Area */}
           <div className="mb-12 flex flex-wrap gap-2 items-center">
