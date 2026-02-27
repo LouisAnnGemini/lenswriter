@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-export type Work = { id: string; title: string; createdAt: number };
+export type Work = { id: string; title: string; createdAt: number; order: number };
 export type Character = { id: string; workId: string; name: string; description: string; order: number };
 export type Chapter = { id: string; workId: string; title: string; order: number };
 export type Scene = { id: string; chapterId: string; title: string; order: number; characterIds: string[]; characterNotes?: Record<string, string> };
@@ -21,6 +21,9 @@ export type StoreState = {
 
 type Action =
   | { type: 'ADD_WORK'; payload: { title: string } }
+  | { type: 'UPDATE_WORK'; payload: { id: string; title: string } }
+  | { type: 'DELETE_WORK'; payload: string }
+  | { type: 'REORDER_WORKS'; payload: { startIndex: number; endIndex: number } }
   | { type: 'SET_ACTIVE_WORK'; payload: string }
   | { type: 'SET_ACTIVE_DOCUMENT'; payload: string | null }
   | { type: 'SET_ACTIVE_TAB'; payload: 'writing' | 'lenses' | 'characters' }
@@ -53,7 +56,7 @@ const initialBlockId1 = uuidv4();
 const initialBlockId2 = uuidv4();
 
 const initialState: StoreState = {
-  works: [{ id: initialWorkId, title: 'The Silent Echo', createdAt: Date.now() }],
+  works: [{ id: initialWorkId, title: 'The Silent Echo', createdAt: Date.now(), order: 0 }],
   characters: [
     { id: initialCharId, workId: initialWorkId, name: 'Elias Thorne', description: 'A detective with a troubled past.', order: 0 },
     { id: uuidv4(), workId: initialWorkId, name: 'Sarah Vance', description: 'An investigative journalist.', order: 1 }
@@ -80,8 +83,42 @@ const initialState: StoreState = {
 function storeReducer(state: StoreState, action: Action): StoreState {
   switch (action.type) {
     case 'ADD_WORK': {
-      const newWork: Work = { id: uuidv4(), title: action.payload.title, createdAt: Date.now() };
+      const newWork: Work = { id: uuidv4(), title: action.payload.title, createdAt: Date.now(), order: state.works.length };
       return { ...state, works: [...state.works, newWork], activeWorkId: newWork.id, activeDocumentId: null };
+    }
+    case 'UPDATE_WORK': {
+      return {
+        ...state,
+        works: state.works.map(w => w.id === action.payload.id ? { ...w, title: action.payload.title } : w)
+      };
+    }
+    case 'DELETE_WORK': {
+      const workId = action.payload;
+      const chaptersToDelete = state.chapters.filter(c => c.workId === workId).map(c => c.id);
+      const scenesToDelete = state.scenes.filter(s => chaptersToDelete.includes(s.chapterId)).map(s => s.id);
+      const docsToDelete = [...chaptersToDelete, ...scenesToDelete];
+
+      return {
+        ...state,
+        works: state.works.filter(w => w.id !== workId),
+        chapters: state.chapters.filter(c => c.workId !== workId),
+        scenes: state.scenes.filter(s => !chaptersToDelete.includes(s.chapterId)),
+        characters: state.characters.filter(c => c.workId !== workId),
+        blocks: state.blocks.filter(b => !docsToDelete.includes(b.documentId)),
+        activeWorkId: state.activeWorkId === workId ? null : state.activeWorkId,
+        activeDocumentId: docsToDelete.includes(state.activeDocumentId!) ? null : state.activeDocumentId
+      };
+    }
+    case 'REORDER_WORKS': {
+      const { startIndex, endIndex } = action.payload;
+      const works = [...state.works].sort((a, b) => a.order - b.order);
+      const [removed] = works.splice(startIndex, 1);
+      works.splice(endIndex, 0, removed);
+      const updatedWorks = works.map((w, i) => ({ ...w, order: i }));
+      return {
+        ...state,
+        works: updatedWorks
+      };
     }
     case 'SET_ACTIVE_WORK':
       return { ...state, activeWorkId: action.payload, activeDocumentId: null };

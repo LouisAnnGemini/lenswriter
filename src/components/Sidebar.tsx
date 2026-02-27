@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/StoreContext';
-import { Book, Plus, ChevronLeft, ChevronRight, Download, Upload } from 'lucide-react';
+import { Book, Plus, ChevronLeft, ChevronRight, Download, Upload, Trash2, Edit2, GripVertical, Check, X } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { cn } from '../lib/utils';
 
 export function Sidebar() {
   const { state, dispatch } = useStore();
   const [collapsed, setCollapsed] = useState(false);
   const [newWorkTitle, setNewWorkTitle] = useState('');
+  const [editingWorkId, setEditingWorkId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [deletingWorkId, setDeletingWorkId] = useState<string | null>(null);
 
   if (state.focusMode) return null;
 
@@ -15,6 +19,26 @@ export function Sidebar() {
       dispatch({ type: 'ADD_WORK', payload: { title: newWorkTitle.trim() } });
       setNewWorkTitle('');
     }
+  };
+
+  const handleRenameWork = (id: string) => {
+    if (editTitle.trim()) {
+      dispatch({ type: 'UPDATE_WORK', payload: { id, title: editTitle.trim() } });
+      setEditingWorkId(null);
+    }
+  };
+
+  const confirmDeleteWork = (id: string) => {
+    dispatch({ type: 'DELETE_WORK', payload: id });
+    setDeletingWorkId(null);
+  };
+
+  const onDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    dispatch({
+      type: 'REORDER_WORKS',
+      payload: { startIndex: result.source.index, endIndex: result.destination.index }
+    });
   };
 
   const handleExport = () => {
@@ -63,23 +87,107 @@ export function Sidebar() {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-4 space-y-1">
-        {state.works.map(work => (
-          <button
-            key={work.id}
-            onClick={() => dispatch({ type: 'SET_ACTIVE_WORK', payload: work.id })}
-            className={cn(
-              "w-full flex items-center px-4 py-2 text-sm transition-colors",
-              state.activeWorkId === work.id 
-                ? "bg-stone-800 text-stone-100 border-r-2 border-emerald-500" 
-                : "hover:bg-stone-800/50 hover:text-stone-200"
+      <div className="flex-1 overflow-y-auto py-4">
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="works" type="work">
+            {(provided) => (
+              <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-1">
+                {[...state.works].sort((a, b) => a.order - b.order).map((work, index) => (
+                  // @ts-expect-error React 19 key prop issue
+                  <Draggable key={work.id} draggableId={work.id} index={index}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        className={cn(
+                          "group relative flex items-center px-4 py-2 text-sm transition-colors",
+                          state.activeWorkId === work.id 
+                            ? "bg-stone-800 text-stone-100 border-r-2 border-emerald-500" 
+                            : "hover:bg-stone-800/50 hover:text-stone-200",
+                          snapshot.isDragging && "bg-stone-800 shadow-xl z-50"
+                        )}
+                      >
+                        {!collapsed && (
+                          <div {...provided.dragHandleProps} className="mr-2 text-stone-600 opacity-0 group-hover:opacity-100 cursor-grab">
+                            <GripVertical size={14} />
+                          </div>
+                        )}
+                        
+                        <div 
+                          className="flex-1 flex items-center min-w-0 cursor-pointer"
+                          onClick={() => dispatch({ type: 'SET_ACTIVE_WORK', payload: work.id })}
+                        >
+                          <Book size={16} className={cn("shrink-0", collapsed ? "mx-auto" : "mr-3")} />
+                          {!collapsed && (
+                            editingWorkId === work.id ? (
+                              <input
+                                autoFocus
+                                value={editTitle}
+                                onChange={e => setEditTitle(e.target.value)}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') handleRenameWork(work.id);
+                                  if (e.key === 'Escape') setEditingWorkId(null);
+                                }}
+                                onBlur={() => handleRenameWork(work.id)}
+                                onClick={e => e.stopPropagation()}
+                                className="flex-1 bg-stone-700 text-stone-100 px-2 py-0.5 rounded outline-none ring-1 ring-emerald-500"
+                              />
+                            ) : deletingWorkId === work.id ? (
+                              <div className="flex items-center space-x-2" onClick={e => e.stopPropagation()}>
+                                <span className="text-red-400 font-bold text-xs uppercase">Delete?</span>
+                                <button 
+                                  onClick={() => confirmDeleteWork(work.id)}
+                                  className="p-1 bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white rounded"
+                                >
+                                  <Check size={12} />
+                                </button>
+                                <button 
+                                  onClick={() => setDeletingWorkId(null)}
+                                  className="p-1 bg-stone-700 text-stone-400 hover:bg-stone-600 hover:text-stone-200 rounded"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="truncate">{work.title}</span>
+                            )
+                          )}
+                        </div>
+
+                        {!collapsed && !editingWorkId && !deletingWorkId && (
+                          <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingWorkId(work.id);
+                                setEditTitle(work.title);
+                              }}
+                              className="p-1 hover:text-stone-100 rounded"
+                              title="Rename"
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingWorkId(work.id);
+                              }}
+                              className="p-1 hover:text-red-400 rounded"
+                              title="Delete Work"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </div>
             )}
-            title={work.title}
-          >
-            <Book size={16} className={cn("shrink-0", collapsed ? "mx-auto" : "mr-3")} />
-            {!collapsed && <span className="truncate">{work.title}</span>}
-          </button>
-        ))}
+          </Droppable>
+        </DragDropContext>
       </div>
 
       {!collapsed && (
