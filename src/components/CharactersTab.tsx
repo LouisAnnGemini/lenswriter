@@ -169,17 +169,15 @@ export function CharactersTab() {
                       {appearances.map((app, i) => (
                         <div key={i} className="p-4 flex items-start justify-between hover:bg-stone-100/50 transition-colors">
                           <div className="flex-1 pr-4">
-                            <div className="flex items-center space-x-2 mb-1">
+                            <div className="flex items-center space-x-2 mb-2">
                               <span className="text-xs font-mono text-stone-500 bg-stone-200 px-1.5 py-0.5 rounded">{app.sceneIndexStr}</span>
                               <span className="text-sm font-medium text-stone-900">{app.sceneTitle}</span>
                             </div>
-                            <div className="text-xs text-stone-500 mb-2">{app.chapterTitle}</div>
-                            <input
-                              type="text"
+                            <textarea
                               value={app.note}
                               onChange={(e) => dispatch({ type: 'UPDATE_SCENE_CHARACTER_NOTE', payload: { sceneId: app.sceneId, characterId: activeChar.id, note: e.target.value } })}
                               placeholder="Add notes for this appearance..."
-                              className="w-full text-sm text-stone-700 bg-white p-2 rounded border border-stone-200 outline-none focus:border-emerald-500 transition-colors"
+                              className="w-full text-sm text-stone-700 bg-white p-2 rounded border border-stone-200 outline-none focus:border-emerald-500 transition-colors resize-y min-h-[60px] whitespace-normal break-words"
                             />
                           </div>
                           <button 
