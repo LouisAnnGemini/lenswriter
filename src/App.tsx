@@ -7,6 +7,7 @@ import { EditorPanel } from './components/EditorPanel';
 import { LensesTab } from './components/LensesTab';
 import { CharactersTab } from './components/CharactersTab';
 import { Minimize2 } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 
 function MainContent({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, setMobileOpen: (open: boolean) => void }) {
   const { state, dispatch } = useStore();
@@ -46,6 +47,7 @@ export default function App() {
       <div className="flex h-screen w-full overflow-hidden font-sans text-stone-900 bg-stone-900 selection:bg-emerald-200 selection:text-emerald-900">
         <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
         <MainContent mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+        <Analytics />
       </div>
     </StoreProvider>
   );
