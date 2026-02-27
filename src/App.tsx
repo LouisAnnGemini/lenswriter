@@ -1,4 +1,5 @@
 import React from 'react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { StoreProvider, useStore } from './store/StoreContext';
 import { Sidebar } from './components/Sidebar';
 import { TopNav } from './components/TopNav';
@@ -46,6 +47,7 @@ export default function App() {
       <div className="flex h-screen w-full overflow-hidden font-sans text-stone-900 bg-stone-900 selection:bg-emerald-200 selection:text-emerald-900">
         <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
         <MainContent mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+        <SpeedInsights />
       </div>
     </StoreProvider>
   );
