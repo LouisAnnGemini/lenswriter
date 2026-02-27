@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/StoreContext';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { FileText, Folder, GripVertical, Plus, Trash2 } from 'lucide-react';
+import { FileText, Folder, GripVertical, Plus, Trash2, Check, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean) => void }) {
   const { state, dispatch } = useStore();
   const [viewMode, setViewMode] = useState<'outline' | 'default' | 'scenes'>('default');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   if (state.focusMode) return null;
 
@@ -52,6 +53,39 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
 
   const addScene = (chapterId: string) => {
     dispatch({ type: 'ADD_SCENE', payload: { chapterId, title: 'New Scene' } });
+  };
+
+  const renderDeleteButton = (id: string, onDelete: () => void, size = 12, className?: string) => {
+    if (deletingId === id) {
+      return (
+        <div className="flex items-center bg-red-50 rounded ml-1 animate-in fade-in slide-in-from-right-2 duration-200" onClick={e => e.stopPropagation()}>
+          <span className="text-[10px] font-bold text-red-600 mx-1">DELETE?</span>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(); setDeletingId(null); }}
+            className="p-1 text-red-600 hover:bg-red-100 rounded"
+          >
+            <Check size={size} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setDeletingId(null); }}
+            className="p-1 text-stone-400 hover:bg-stone-200 rounded"
+          >
+            <X size={size} />
+          </button>
+        </div>
+      );
+    }
+    return (
+      <button
+        onClick={(e) => { e.stopPropagation(); setDeletingId(id); }}
+        className={cn(
+          "md:opacity-0 md:group-hover:opacity-100 opacity-100 p-1 hover:bg-red-100 hover:text-red-600 rounded text-stone-400 transition-all relative z-10",
+          className
+        )}
+      >
+        <Trash2 size={size} />
+      </button>
+    );
   };
 
   return (
@@ -109,12 +143,7 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
                           >
                             {chapter.title}
                           </span>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); if(confirm('Delete chapter and all its scenes?')) dispatch({ type: 'DELETE_CHAPTER', payload: chapter.id }); }}
-                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 hover:text-red-600 rounded text-stone-400 transition-all"
-                          >
-                            <Trash2 size={12} />
-                          </button>
+                          {renderDeleteButton(chapter.id, () => dispatch({ type: 'DELETE_CHAPTER', payload: chapter.id }))}
                         </div>
                       )}
                     </Draggable>
@@ -145,18 +174,18 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
                       <span className="whitespace-normal break-words text-xs md:text-sm">{chapter.title}</span>
                     </div>
                     <div className="flex items-center space-x-1 shrink-0 ml-2">
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); addScene(chapter.id); }}
-                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-stone-200 rounded text-stone-50"
-                      >
-                        <Plus size={14} className="text-stone-500" />
-                      </button>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); if(confirm('Delete chapter and all its scenes?')) dispatch({ type: 'DELETE_CHAPTER', payload: chapter.id }); }}
-                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 hover:text-red-600 rounded text-stone-400 transition-all"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      {deletingId !== chapter.id && (
+                        <button 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            addScene(chapter.id); 
+                          }}
+                          className="md:opacity-0 md:group-hover:opacity-100 opacity-100 p-1 hover:bg-stone-200 rounded text-stone-50 relative z-10"
+                        >
+                          <Plus size={14} className="text-stone-500" />
+                        </button>
+                      )}
+                      {renderDeleteButton(chapter.id, () => dispatch({ type: 'DELETE_CHAPTER', payload: chapter.id }), 14)}
                     </div>
                   </div>
                   <div className="pl-6 space-y-1 border-l border-stone-200 ml-3">
@@ -176,12 +205,7 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
                           <FileText size={12} className="mr-2 text-stone-400 shrink-0" />
                           <span className="whitespace-normal break-words text-xs md:text-sm">{scene.title}</span>
                         </div>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); if(confirm('Delete this scene?')) dispatch({ type: 'DELETE_SCENE', payload: scene.id }); }}
-                          className="opacity-0 group-hover/scene:opacity-100 p-1 hover:bg-red-100 hover:text-red-600 rounded text-stone-400 transition-all"
-                        >
-                          <Trash2 size={12} />
-                        </button>
+                        {renderDeleteButton(scene.id, () => dispatch({ type: 'DELETE_SCENE', payload: scene.id }), 12, "md:group-hover/scene:opacity-100")}
                       </div>
                     ))}
                   </div>
@@ -246,12 +270,7 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
                                   >
                                     {scene.title}
                                   </span>
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); if(confirm('Delete this scene?')) dispatch({ type: 'DELETE_SCENE', payload: scene.id }); }}
-                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 hover:text-red-600 rounded text-stone-400 transition-all"
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
+                                  {renderDeleteButton(scene.id, () => dispatch({ type: 'DELETE_SCENE', payload: scene.id }))}
                                 </div>
                               )}
                             </Draggable>

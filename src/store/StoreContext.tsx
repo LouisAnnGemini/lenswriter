@@ -130,8 +130,40 @@ function storeReducer(state: StoreState, action: Action): StoreState {
       return { ...state, focusMode: !state.focusMode };
     case 'ADD_CHAPTER': {
       const chapters = state.chapters.filter(c => c.workId === action.payload.workId);
-      const newChapter: Chapter = { id: uuidv4(), workId: action.payload.workId, title: action.payload.title, order: chapters.length };
-      return { ...state, chapters: [...state.chapters, newChapter], activeDocumentId: newChapter.id };
+      const newChapterId = uuidv4();
+      const newSceneId = uuidv4();
+      const newBlockId = uuidv4();
+
+      const newChapter: Chapter = { 
+        id: newChapterId, 
+        workId: action.payload.workId, 
+        title: action.payload.title, 
+        order: chapters.length 
+      };
+
+      const newScene: Scene = {
+        id: newSceneId,
+        chapterId: newChapterId,
+        title: 'New Scene',
+        order: 0,
+        characterIds: []
+      };
+
+      const newBlock: Block = {
+        id: newBlockId,
+        documentId: newSceneId,
+        type: 'text',
+        content: '',
+        order: 0
+      };
+
+      return { 
+        ...state, 
+        chapters: [...state.chapters, newChapter], 
+        scenes: [...state.scenes, newScene],
+        blocks: [...state.blocks, newBlock],
+        activeDocumentId: newSceneId 
+      };
     }
     case 'UPDATE_CHAPTER':
       return { ...state, chapters: state.chapters.map(c => c.id === action.payload.id ? { ...c, title: action.payload.title } : c) };
@@ -161,8 +193,31 @@ function storeReducer(state: StoreState, action: Action): StoreState {
     }
     case 'ADD_SCENE': {
       const scenes = state.scenes.filter(s => s.chapterId === action.payload.chapterId);
-      const newScene: Scene = { id: uuidv4(), chapterId: action.payload.chapterId, title: action.payload.title, order: scenes.length, characterIds: [] };
-      return { ...state, scenes: [...state.scenes, newScene], activeDocumentId: newScene.id };
+      const newSceneId = uuidv4();
+      const newBlockId = uuidv4();
+      
+      const newScene: Scene = { 
+        id: newSceneId, 
+        chapterId: action.payload.chapterId, 
+        title: action.payload.title, 
+        order: scenes.length, 
+        characterIds: [] 
+      };
+
+      const newBlock: Block = {
+        id: newBlockId,
+        documentId: newSceneId,
+        type: 'text',
+        content: '',
+        order: 0
+      };
+
+      return { 
+        ...state, 
+        scenes: [...state.scenes, newScene], 
+        blocks: [...state.blocks, newBlock],
+        activeDocumentId: newSceneId 
+      };
     }
     case 'UPDATE_SCENE':
       return { ...state, scenes: state.scenes.map(s => s.id === action.payload.id ? { ...s, title: action.payload.title } : s) };

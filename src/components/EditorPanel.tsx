@@ -134,7 +134,7 @@ export function EditorPanel() {
                   dispatch({ type: 'UPDATE_CHAPTER', payload: { id: activeDocId, title: e.target.value } });
                 }
               }}
-              className="flex-1 text-2xl md:text-4xl font-serif font-semibold text-stone-900 outline-none placeholder:text-stone-300 bg-transparent whitespace-normal break-words"
+              className="flex-1 text-2xl md:text-3xl font-serif font-semibold text-stone-900 outline-none placeholder:text-stone-300 bg-transparent whitespace-normal break-words"
               placeholder="Untitled..."
             />
             {isScene ? (
