@@ -316,49 +316,76 @@ export function CharactersTab() {
             <div className="p-4 overflow-y-auto flex-1 space-y-4 bg-stone-50/50">
               <p className="text-sm text-stone-500 mb-4">Define custom attributes (like Age, Gender, Role) for all characters in this work.</p>
               
-              {activeWork?.characterFields?.map(field => (
-                <div key={field.id} className="bg-white border border-stone-200 p-4 rounded-xl flex gap-4 items-start shadow-sm">
-                  <div className="flex-1 space-y-3">
-                    <div className="flex gap-3">
-                      <div className="flex-1">
-                        <label className="block text-xs font-medium text-stone-500 mb-1">Field Name</label>
-                        <input 
-                          value={field.name} 
-                          onChange={e => dispatch({type: 'UPDATE_CHARACTER_FIELD', payload: {workId: activeWorkId, fieldId: field.id, updates: {name: e.target.value}}})} 
-                          className="w-full border border-stone-200 p-2 rounded-md text-sm outline-none focus:border-emerald-500" 
-                          placeholder="e.g. Age, Gender, Faction" 
-                        />
-                      </div>
-                      <div className="w-40">
-                        <label className="block text-xs font-medium text-stone-500 mb-1">Field Type</label>
-                        <select 
-                          value={field.type} 
-                          onChange={e => dispatch({type: 'UPDATE_CHARACTER_FIELD', payload: {workId: activeWorkId, fieldId: field.id, updates: {type: e.target.value as CharacterFieldType}}})} 
-                          className="w-full border border-stone-200 p-2 rounded-md text-sm outline-none focus:border-emerald-500 bg-white"
-                        >
-                          <option value="text">Text</option>
-                          <option value="number">Number</option>
-                          <option value="select">Single Select</option>
-                          <option value="multiselect">Multi Select</option>
-                        </select>
-                      </div>
+              <DragDropContext onDragEnd={(result) => {
+                if (!result.destination) return;
+                dispatch({
+                  type: 'REORDER_CHARACTER_FIELDS',
+                  payload: { workId: activeWorkId, startIndex: result.source.index, endIndex: result.destination.index }
+                });
+              }}>
+                <Droppable droppableId="character-fields" type="field">
+                  {(provided) => (
+                    <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
+                      {activeWork?.characterFields?.map((field, index) => (
+                        // @ts-expect-error React 19 key prop issue
+                        <Draggable key={field.id} draggableId={field.id} index={index}>
+                          {(provided, snapshot) => (
+                            <div 
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className={cn("bg-white border border-stone-200 p-4 rounded-xl flex gap-4 items-start shadow-sm", snapshot.isDragging && "shadow-md")}
+                            >
+                              <div {...provided.dragHandleProps} className="mt-6 text-stone-400 cursor-grab hover:text-stone-600">
+                                <GripVertical size={20} />
+                              </div>
+                              <div className="flex-1 space-y-3">
+                                <div className="flex gap-3">
+                                  <div className="flex-1">
+                                    <label className="block text-xs font-medium text-stone-500 mb-1">Field Name</label>
+                                    <input 
+                                      value={field.name} 
+                                      onChange={e => dispatch({type: 'UPDATE_CHARACTER_FIELD', payload: {workId: activeWorkId, fieldId: field.id, updates: {name: e.target.value}}})} 
+                                      className="w-full border border-stone-200 p-2 rounded-md text-sm outline-none focus:border-emerald-500" 
+                                      placeholder="e.g. Age, Gender, Faction" 
+                                    />
+                                  </div>
+                                  <div className="w-40">
+                                    <label className="block text-xs font-medium text-stone-500 mb-1">Field Type</label>
+                                    <select 
+                                      value={field.type} 
+                                      onChange={e => dispatch({type: 'UPDATE_CHARACTER_FIELD', payload: {workId: activeWorkId, fieldId: field.id, updates: {type: e.target.value as CharacterFieldType}}})} 
+                                      className="w-full border border-stone-200 p-2 rounded-md text-sm outline-none focus:border-emerald-500 bg-white"
+                                    >
+                                      <option value="text">Text</option>
+                                      <option value="number">Number</option>
+                                      <option value="select">Single Select</option>
+                                      <option value="multiselect">Multi Select</option>
+                                    </select>
+                                  </div>
+                                </div>
+                                {(field.type === 'select' || field.type === 'multiselect') && (
+                                  <div>
+                                    <label className="block text-xs font-medium text-stone-500 mb-1">Options (comma separated)</label>
+                                    <FieldOptionInput field={field} workId={activeWorkId} dispatch={dispatch} />
+                                  </div>
+                                )}
+                              </div>
+                              <button 
+                                onClick={() => { if(window.confirm('Delete this field? All characters will lose data for this field.')) dispatch({type: 'DELETE_CHARACTER_FIELD', payload: {workId: activeWorkId, fieldId: field.id}}) }} 
+                                className="text-stone-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-md transition-colors mt-5"
+                                title="Delete Field"
+                              >
+                                <Trash2 size={18}/>
+                              </button>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
                     </div>
-                    {(field.type === 'select' || field.type === 'multiselect') && (
-                      <div>
-                        <label className="block text-xs font-medium text-stone-500 mb-1">Options (comma separated)</label>
-                        <FieldOptionInput field={field} workId={activeWorkId} dispatch={dispatch} />
-                      </div>
-                    )}
-                  </div>
-                  <button 
-                    onClick={() => { if(window.confirm('Delete this field? All characters will lose data for this field.')) dispatch({type: 'DELETE_CHARACTER_FIELD', payload: {workId: activeWorkId, fieldId: field.id}}) }} 
-                    className="text-stone-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-md transition-colors mt-5"
-                    title="Delete Field"
-                  >
-                    <Trash2 size={18}/>
-                  </button>
-                </div>
-              ))}
+                  )}
+                </Droppable>
+              </DragDropContext>
               
               <button 
                 onClick={() => dispatch({type: 'ADD_CHARACTER_FIELD', payload: {workId: activeWorkId, field: {id: uuidv4(), name: 'New Field', type: 'text', options: []}}})} 

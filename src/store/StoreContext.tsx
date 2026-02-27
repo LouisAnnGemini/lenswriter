@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-export type Work = { id: string; title: string; createdAt: number; order: number; characterFields?: CharacterFieldDef[] };
+export type Work = { id: string; title: string; createdAt: number; order: number; characterFields?: CharacterFieldDef[]; lensesDescription?: string };
 export type Character = { id: string; workId: string; name: string; description: string; order: number; customFields?: Record<string, any> };
 export type Chapter = { id: string; workId: string; title: string; order: number };
 export type Scene = { id: string; chapterId: string; title: string; order: number; characterIds: string[]; characterNotes?: Record<string, string> };
@@ -24,7 +24,7 @@ export type StoreState = {
 
 type Action =
   | { type: 'ADD_WORK'; payload: { title: string } }
-  | { type: 'UPDATE_WORK'; payload: { id: string; title: string } }
+  | { type: 'UPDATE_WORK'; payload: { id: string; title?: string; lensesDescription?: string } }
   | { type: 'DELETE_WORK'; payload: string }
   | { type: 'REORDER_WORKS'; payload: { startIndex: number; endIndex: number } }
   | { type: 'SET_ACTIVE_WORK'; payload: string }
@@ -47,6 +47,7 @@ type Action =
   | { type: 'ADD_CHARACTER'; payload: { workId: string; name: string } }
   | { type: 'UPDATE_CHARACTER'; payload: { id: string; name?: string; description?: string } }
   | { type: 'REORDER_CHARACTERS'; payload: { workId: string; startIndex: number; endIndex: number } }
+  | { type: 'REORDER_CHARACTER_FIELDS'; payload: { workId: string; startIndex: number; endIndex: number } }
   | { type: 'MERGE_BLOCK_UP'; payload: string }
   | { type: 'DELETE_CHAPTER'; payload: string }
   | { type: 'DELETE_SCENE'; payload: string }
@@ -97,7 +98,7 @@ function storeReducer(state: StoreState, action: Action): StoreState {
     case 'UPDATE_WORK': {
       return {
         ...state,
-        works: state.works.map(w => w.id === action.payload.id ? { ...w, title: action.payload.title } : w)
+        works: state.works.map(w => w.id === action.payload.id ? { ...w, ...action.payload } : w)
       };
     }
     case 'DELETE_WORK': {
@@ -190,7 +191,7 @@ function storeReducer(state: StoreState, action: Action): StoreState {
       const prevBlock = docBlocks[blockIndex - 1];
       if (prevBlock.type !== 'text') return state; // Only merge text with text
 
-      const newContent = prevBlock.content + '\n\n' + block.content;
+      const newContent = prevBlock.content + '\n' + block.content;
 
       return {
         ...state,
@@ -459,6 +460,18 @@ function storeReducer(state: StoreState, action: Action): StoreState {
           ...w,
           characterFields: (w.characterFields || []).filter(f => f.id !== action.payload.fieldId)
         } : w)
+      };
+    }
+    case 'REORDER_CHARACTER_FIELDS': {
+      return {
+        ...state,
+        works: state.works.map(w => {
+          if (w.id !== action.payload.workId) return w;
+          const newFields = Array.from(w.characterFields || []);
+          const [removed] = newFields.splice(action.payload.startIndex, 1);
+          newFields.splice(action.payload.endIndex, 0, removed);
+          return { ...w, characterFields: newFields };
+        })
       };
     }
     case 'UPDATE_CHARACTER_CUSTOM_FIELD': {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/StoreContext';
 import { Layers, MapPin, Edit2, Link as LinkIcon, X, Plus, Lock, Filter, ExternalLink } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -15,9 +15,18 @@ const LENS_COLORS = {
 export function LensesTab() {
   const { state, dispatch } = useStore();
   const activeWorkId = state.activeWorkId;
+  const activeWork = state.works.find(w => w.id === activeWorkId);
   const [selectedLensId, setSelectedLensId] = useState<string | null>(null);
   const [filterColor, setFilterColor] = useState<string | 'all'>('all');
   const [filterChapterId, setFilterChapterId] = useState<string | 'all'>('all');
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (descriptionRef.current) {
+      descriptionRef.current.style.height = 'auto';
+      descriptionRef.current.style.height = descriptionRef.current.scrollHeight + 'px';
+    }
+  }, [activeWork?.lensesDescription]);
 
   if (!activeWorkId) return <div className="flex-1 flex items-center justify-center text-stone-400">Select a work</div>;
 
@@ -88,9 +97,25 @@ export function LensesTab() {
       <div className={cn("flex-1 overflow-y-auto p-4 md:p-6 transition-all pb-24 md:pb-6", selectedLensId ? "hidden md:block md:pr-96" : "")}>
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 space-y-4 md:space-y-0">
-            <div>
+            <div className="flex-1 max-w-2xl">
               <h2 className="text-2xl font-serif font-semibold text-stone-900">Color Lenses</h2>
-              <p className="text-sm text-stone-500 mt-1">Global summary of all highlighted information.</p>
+              <textarea
+                ref={descriptionRef}
+                value={activeWork?.lensesDescription ?? "Global summary of all highlighted information."}
+                onChange={(e) => {
+                  dispatch({ type: 'UPDATE_WORK', payload: { id: activeWorkId, lensesDescription: e.target.value } });
+                  e.target.style.height = 'auto';
+                  e.target.style.height = e.target.scrollHeight + 'px';
+                }}
+                onFocus={(e) => {
+                  e.target.style.height = 'auto';
+                  e.target.style.height = e.target.scrollHeight + 'px';
+                }}
+                className="text-sm text-stone-500 mt-1 bg-transparent border-b border-transparent hover:border-stone-300 focus:border-emerald-500 outline-none w-full transition-colors resize-none overflow-hidden block"
+                placeholder="Enter a description for your lenses..."
+                rows={1}
+                style={{ minHeight: '24px' }}
+              />
             </div>
             <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4 w-full md:w-auto">
               {/* Chapter Filter */}
