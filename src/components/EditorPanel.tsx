@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/StoreContext';
-import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check, ChevronLeft, ArrowUpToLine } from 'lucide-react';
+import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check, ChevronLeft, ArrowUpToLine, MessageSquare, CheckCircle2, List, PanelRightClose, PanelRightOpen, MessageSquareOff } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const LENS_COLORS = {
@@ -37,17 +37,19 @@ const AutoResizeTextarea = ({ value, onChange, className, placeholder }: any) =>
 export function EditorPanel() {
   const { state, dispatch } = useStore();
   const [copied, setCopied] = useState(false);
+  const [isTocOpen, setIsTocOpen] = useState(true);
+  const [showDescriptions, setShowDescriptions] = useState(true);
   const activeDocId = state.activeDocumentId;
   const activeWorkId = state.activeWorkId;
 
-  const document = state.scenes.find(s => s.id === activeDocId) || state.chapters.find(c => c.id === activeDocId);
+  const activeDocument = state.scenes.find(s => s.id === activeDocId) || state.chapters.find(c => c.id === activeDocId);
   const isScene = state.scenes.some(s => s.id === activeDocId);
   
   const blocks = state.blocks.filter(b => b.documentId === activeDocId).sort((a, b) => a.order - b.order);
   const characters = state.characters.filter(c => c.workId === activeWorkId).sort((a, b) => a.order - b.order);
   const chapters = state.chapters.filter(c => c.workId === activeWorkId).sort((a, b) => a.order - b.order);
 
-  if (!document) {
+  if (!activeDocument) {
     return (
       <div className="hidden md:flex flex-1 flex-col items-center justify-center text-stone-400 bg-white">
         <AlignLeft size={48} className="mb-4 opacity-20" />
@@ -56,24 +58,32 @@ export function EditorPanel() {
     );
   }
 
-  const handleBlockChange = (id: string, content: string) => {
-    dispatch({ type: 'UPDATE_BLOCK', payload: { id, content } });
+  const handleBlockChange = (id: string, updates: Partial<typeof state.blocks[0]>) => {
+    dispatch({ type: 'UPDATE_BLOCK', payload: { id, ...updates } });
   };
 
-  const navigateToLens = (lensId: string) => {
-    const lens = state.blocks.find(b => b.id === lensId);
-    if (lens) {
-      if (lens.documentId !== activeDocId) {
-        dispatch({ type: 'SET_ACTIVE_DOCUMENT', payload: lens.documentId });
+  const navigateToBlock = (blockId: string) => {
+    const block = state.blocks.find(b => b.id === blockId);
+    if (block) {
+      if (block.documentId !== activeDocId) {
+        dispatch({ type: 'SET_ACTIVE_DOCUMENT', payload: block.documentId });
       }
       setTimeout(() => {
-        const el = document.getElementById(`block-${lensId}`);
+        const el = document.getElementById(`block-${blockId}`);
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           el.classList.add('ring-2', 'ring-emerald-500', 'ring-offset-2');
           setTimeout(() => el.classList.remove('ring-2', 'ring-emerald-500', 'ring-offset-2'), 2000);
         }
       }, 100);
+    }
+  };
+
+  const toggleBlockDescription = (block: typeof state.blocks[0]) => {
+    if (block.description === undefined) {
+      handleBlockChange(block.id, { description: '' });
+    } else if (block.description === '') {
+      handleBlockChange(block.id, { description: undefined });
     }
   };
 
@@ -120,9 +130,39 @@ export function EditorPanel() {
     chapterCharacters = Array.from(charIds);
   }
 
+  // TOC Data
+  const tocSections: { title: string; documentId: string; entries: { id: string; description: string; completed: boolean; documentId: string }[] }[] = [];
+  if (activeDocument) {
+    const chapterId = isScene ? (activeDocument as any).chapterId : activeDocId;
+    const chapter = state.chapters.find(c => c.id === chapterId);
+    
+    if (chapter) {
+      const chapterBlocks = state.blocks.filter(b => b.documentId === chapterId && b.type === 'text' && b.description !== undefined).sort((a, b) => a.order - b.order);
+      if (chapterBlocks.length > 0) {
+        tocSections.push({
+          title: chapter.title || 'Untitled Chapter',
+          documentId: chapterId,
+          entries: chapterBlocks.map(b => ({ id: b.id, description: b.description || 'Untitled Block', completed: !!b.completed, documentId: b.documentId }))
+        });
+      }
+      
+      const chapterScenes = state.scenes.filter(s => s.chapterId === chapterId).sort((a, b) => a.order - b.order);
+      for (const scene of chapterScenes) {
+        const sceneBlocks = state.blocks.filter(b => b.documentId === scene.id && b.type === 'text' && b.description !== undefined).sort((a, b) => a.order - b.order);
+        if (sceneBlocks.length > 0) {
+          tocSections.push({
+            title: scene.title || 'Untitled Scene',
+            documentId: scene.id,
+            entries: sceneBlocks.map(b => ({ id: b.id, description: b.description || 'Untitled Block', completed: !!b.completed, documentId: b.documentId }))
+          });
+        }
+      }
+    }
+  }
+
   return (
     <div className={cn(
-      "flex-1 flex flex-col bg-white overflow-hidden relative transition-all duration-300",
+      "flex-1 flex bg-white overflow-hidden relative transition-all duration-300",
       !activeDocId ? "hidden md:flex" : "flex"
     )}>
       <div className="flex-1 overflow-y-auto px-4 py-8 md:px-8 md:py-12 lg:px-24 xl:px-48 pb-32 md:pb-12">
@@ -130,7 +170,7 @@ export function EditorPanel() {
           <div className="flex items-center justify-between mb-4">
             <input
               type="text"
-              value={document.title}
+              value={activeDocument.title}
               onChange={(e) => {
                 if (isScene) {
                   dispatch({ type: 'UPDATE_SCENE', payload: { id: activeDocId, title: e.target.value } });
@@ -141,34 +181,52 @@ export function EditorPanel() {
               className="flex-1 text-2xl md:text-3xl font-serif font-semibold text-stone-900 outline-none placeholder:text-stone-300 bg-transparent whitespace-normal break-words"
               placeholder="Untitled..."
             />
-            {isScene ? (
+            <div className="flex items-center space-x-2 ml-4">
               <button
-                onClick={handleCopyScene}
-                className="ml-4 p-2 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"
-                title="Copy Scene Text"
+                onClick={() => setShowDescriptions(!showDescriptions)}
+                className={cn("p-2 rounded-md transition-colors", showDescriptions ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100" : "text-stone-400 hover:text-stone-600 hover:bg-stone-100")}
+                title={showDescriptions ? "Hide Descriptions" : "Show Descriptions"}
               >
-                {copied ? <Check size={20} className="text-emerald-600" /> : <Copy size={20} />}
+                {showDescriptions ? <MessageSquare size={20} /> : <MessageSquareOff size={20} />}
               </button>
-            ) : (
-              <button
-                onClick={() => {
-                  if (confirm('Delete this chapter?')) {
-                    dispatch({ type: 'DELETE_CHAPTER', payload: activeDocId });
-                  }
-                }}
-                className="ml-4 p-2 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                title="Delete Chapter"
-              >
-                <Trash2 size={20} />
-              </button>
-            )}
+              {tocSections.length > 0 && (
+                <button
+                  onClick={() => setIsTocOpen(!isTocOpen)}
+                  className={cn("p-2 rounded-md transition-colors hidden lg:flex", isTocOpen ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100" : "text-stone-400 hover:text-stone-600 hover:bg-stone-100")}
+                  title={isTocOpen ? "Close Directory" : "Open Directory"}
+                >
+                  {isTocOpen ? <PanelRightClose size={20} /> : <PanelRightOpen size={20} />}
+                </button>
+              )}
+              {isScene ? (
+                <button
+                  onClick={handleCopyScene}
+                  className="p-2 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"
+                  title="Copy Scene Text"
+                >
+                  {copied ? <Check size={20} className="text-emerald-600" /> : <Copy size={20} />}
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    if (confirm('Delete this chapter?')) {
+                      dispatch({ type: 'DELETE_CHAPTER', payload: activeDocId });
+                    }
+                  }}
+                  className="p-2 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                  title="Delete Chapter"
+                >
+                  <Trash2 size={20} />
+                </button>
+              )}
+            </div>
           </div>
 
           {isScene && (
             <div className="mb-12 flex items-center space-x-3">
               <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Parent Chapter:</label>
               <select
-                value={(document as any).chapterId}
+                value={(activeDocument as any).chapterId}
                 onChange={(e) => {
                   dispatch({ 
                     type: 'MOVE_SCENE', 
@@ -196,7 +254,7 @@ export function EditorPanel() {
             
             {characters.map(char => {
               const isActive = isScene 
-                ? (document as any).characterIds.includes(char.id)
+                ? (activeDocument as any).characterIds.includes(char.id)
                 : chapterCharacters.includes(char.id);
                 
               return (
@@ -233,7 +291,7 @@ export function EditorPanel() {
                     <div className="font-semibold text-stone-900 mb-3">{char.name} appears in:</div>
                     <div className="space-y-2 pl-2 border-l-2 border-emerald-200">
                       {scenesWithChar.map(scene => {
-                        const sceneIndex = `${document.order + 1}-${scene.order + 1}`;
+                        const sceneIndex = `${activeDocument.order + 1}-${scene.order + 1}`;
                         return (
                           <div key={scene.id} className="flex items-start space-x-3">
                             <span className="text-xs font-mono text-stone-500 bg-stone-200 px-1.5 py-0.5 rounded mt-0.5 shrink-0">{sceneIndex}</span>
@@ -274,110 +332,145 @@ export function EditorPanel() {
                   </div>
                 )}
 
-                {/* Block Content */}
-                <div className={cn(
-                  "w-full rounded-lg transition-all",
-                  block.type === 'lens' ? cn("p-4 border-2", LENS_COLORS[block.color as keyof typeof LENS_COLORS] || LENS_COLORS.red) : ""
-                )}>
-                  {block.type === 'lens' && (
-                    <div className="flex justify-between items-center mb-2">
-                      <div className="flex space-x-1">
-                        {Object.keys(LENS_COLORS).map(color => (
-                          <button
-                            key={color}
-                            onClick={() => handleLensColorChange(block.id, color)}
-                            className={cn(
-                              "w-4 h-4 rounded-full border border-black/10 transition-transform hover:scale-110",
-                              color === 'red' && "bg-red-400",
-                              color === 'blue' && "bg-blue-400",
-                              color === 'green' && "bg-emerald-400",
-                              color === 'yellow' && "bg-amber-400",
-                              color === 'purple' && "bg-purple-400",
-                              color === 'black' && "bg-stone-900",
-                              block.color === color && "ring-2 ring-offset-1 ring-stone-400"
-                            )}
-                          />
-                        ))}
-                      </div>
-                      <div className="flex items-center space-x-2 text-black/40">
-                        {block.linkedLensIds && block.linkedLensIds.length > 0 && (
-                          <div className="flex items-center text-xs font-medium bg-black/5 px-2 py-0.5 rounded-full">
-                            <LinkIcon size={10} className="mr-1" />
-                            {block.linkedLensIds.length} Linked
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    {/* Block Content */}
+                    <div className={cn(
+                      "w-full rounded-lg transition-all",
+                      block.type === 'lens' ? cn("p-4 border-2", LENS_COLORS[block.color as keyof typeof LENS_COLORS] || LENS_COLORS.red) : ""
+                    )}>
+                      {block.type === 'lens' && (
+                        <div className="flex justify-between items-center mb-2">
+                          <div className="flex space-x-1">
+                            {Object.keys(LENS_COLORS).map(color => (
+                              <button
+                                key={color}
+                                onClick={() => handleLensColorChange(block.id, color)}
+                                className={cn(
+                                  "w-4 h-4 rounded-full border border-black/10 transition-transform hover:scale-110",
+                                  color === 'red' && "bg-red-400",
+                                  color === 'blue' && "bg-blue-400",
+                                  color === 'green' && "bg-emerald-400",
+                                  color === 'yellow' && "bg-amber-400",
+                                  color === 'purple' && "bg-purple-400",
+                                  color === 'black' && "bg-stone-900",
+                                  block.color === color && "ring-2 ring-offset-1 ring-stone-400"
+                                )}
+                              />
+                            ))}
                           </div>
-                        )}
-                        <button 
-                          onClick={() => handleRemoveLens(block.id)}
-                          className="p-1 hover:bg-black/5 rounded transition-colors"
-                          title="Remove Lens (keep text)"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <AutoResizeTextarea
-                    value={block.content}
-                    onChange={(e: any) => handleBlockChange(block.id, e.target.value)}
-                    placeholder={block.type === 'lens' ? (block.color === 'black' ? "Hidden content..." : "Enter lens content...") : "Start writing..."}
-                    className={cn(
-                      "w-full outline-none bg-transparent",
-                      block.type === 'lens' ? "text-sm font-medium leading-relaxed" : "text-lg leading-relaxed text-stone-800 font-serif",
-                      block.type === 'lens' && block.color === 'black' ? "text-transparent focus:text-stone-100 placeholder:text-stone-700 focus:placeholder:text-stone-500 selection:bg-stone-700 selection:text-stone-100" : ""
-                    )}
-                  />
-                  
-                  {block.type === 'lens' && block.linkedLensIds && block.linkedLensIds.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-black/10 flex flex-wrap gap-2">
-                      {block.linkedLensIds.map(linkedId => {
-                        const linkedLens = state.blocks.find(b => b.id === linkedId);
-                        if (!linkedLens) return null;
-                        return (
-                          <button
-                            key={linkedId}
-                            onClick={() => navigateToLens(linkedId)}
-                            className={cn(
-                              "text-xs flex items-center px-2 py-1 rounded transition-colors font-medium",
-                              block.color === 'black' ? "bg-white/10 hover:bg-white/20 text-stone-300" : "bg-black/5 hover:bg-black/10 text-stone-700"
+                          <div className="flex items-center space-x-2 text-black/40">
+                            {block.linkedLensIds && block.linkedLensIds.length > 0 && (
+                              <div className="flex items-center text-xs font-medium bg-black/5 px-2 py-0.5 rounded-full">
+                                <LinkIcon size={10} className="mr-1" />
+                                {block.linkedLensIds.length} Linked
+                              </div>
                             )}
-                          >
-                            <LinkIcon size={10} className="mr-1 shrink-0" />
-                            <span className="truncate max-w-[200px]">
-                              {linkedLens.color === 'black' ? 'Hidden Content' : (linkedLens.content || 'Empty lens')}
-                            </span>
-                          </button>
-                        );
-                      })}
+                            <button 
+                              onClick={() => handleRemoveLens(block.id)}
+                              className="p-1 hover:bg-black/5 rounded transition-colors"
+                              title="Remove Lens (keep text)"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <AutoResizeTextarea
+                        value={block.content}
+                        onChange={(e: any) => handleBlockChange(block.id, { content: e.target.value })}
+                        placeholder={block.type === 'lens' ? (block.color === 'black' ? "Hidden content..." : "Enter lens content...") : "Start writing..."}
+                        className={cn(
+                          "w-full outline-none bg-transparent",
+                          block.type === 'lens' ? "text-sm font-medium leading-relaxed" : "text-lg leading-relaxed text-stone-800 font-serif",
+                          block.type === 'lens' && block.color === 'black' ? "text-transparent focus:text-stone-100 placeholder:text-stone-700 focus:placeholder:text-stone-500 selection:bg-stone-700 selection:text-stone-100" : ""
+                        )}
+                      />
+                      
+                      {block.type === 'lens' && block.linkedLensIds && block.linkedLensIds.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-black/10 flex flex-wrap gap-2">
+                          {block.linkedLensIds.map(linkedId => {
+                            const linkedLens = state.blocks.find(b => b.id === linkedId);
+                            if (!linkedLens) return null;
+                            return (
+                              <button
+                                key={linkedId}
+                                onClick={() => navigateToBlock(linkedId)}
+                                className={cn(
+                                  "text-xs flex items-center px-2 py-1 rounded transition-colors font-medium",
+                                  block.color === 'black' ? "bg-white/10 hover:bg-white/20 text-stone-300" : "bg-black/5 hover:bg-black/10 text-stone-700"
+                                )}
+                              >
+                                <LinkIcon size={10} className="mr-1 shrink-0" />
+                                <span className="truncate max-w-[200px]">
+                                  {linkedLens.color === 'black' ? 'Hidden Content' : (linkedLens.content || 'Empty lens')}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Block Actions (Hover) */}
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 mt-2 px-2">
+                      <button 
+                        onClick={() => handleAddBlock('text', block.id)}
+                        className="flex items-center px-2 py-1 text-xs font-medium text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded transition-colors"
+                        title="Add Text Block Below"
+                      >
+                        <AlignLeft size={14} className="mr-1" /> Add Text
+                      </button>
+                      <button 
+                        onClick={() => handleAddBlock('lens', block.id)}
+                        className="flex items-center px-2 py-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
+                        title="Add Color Lens Below"
+                      >
+                        <Highlighter size={14} className="mr-1" /> Add Lens
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteBlock(block.id)}
+                        className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                        title="Delete Block"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Right Side Actions for Text Blocks */}
+                  {block.type === 'text' && (
+                    <div className="flex flex-col items-center space-y-2 opacity-0 group-hover:opacity-100 transition-opacity pt-2 w-8 shrink-0">
+                      <button 
+                        onClick={() => toggleBlockDescription(block)}
+                        className={cn("p-1.5 rounded-md transition-colors", block.description !== undefined ? "text-emerald-600 bg-emerald-50" : "text-stone-400 hover:text-stone-600 hover:bg-stone-100")}
+                        title="Block Description"
+                      >
+                        <MessageSquare size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleBlockChange(block.id, { completed: !block.completed })}
+                        className={cn("p-1.5 rounded-md transition-colors", block.completed ? "text-emerald-600 bg-emerald-50" : "text-stone-400 hover:text-stone-600 hover:bg-stone-100")}
+                        title="Toggle Completion"
+                      >
+                        <CheckCircle2 size={16} />
+                      </button>
                     </div>
                   )}
                 </div>
 
-                {/* Block Actions (Hover) */}
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 mt-2 px-2">
-                  <button 
-                    onClick={() => handleAddBlock('text', block.id)}
-                    className="flex items-center px-2 py-1 text-xs font-medium text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded transition-colors"
-                    title="Add Text Block Below"
-                  >
-                    <AlignLeft size={14} className="mr-1" /> Add Text
-                  </button>
-                  <button 
-                    onClick={() => handleAddBlock('lens', block.id)}
-                    className="flex items-center px-2 py-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
-                    title="Add Color Lens Below"
-                  >
-                    <Highlighter size={14} className="mr-1" /> Add Lens
-                  </button>
-                  <div className="flex-1" />
-                  <button 
-                    onClick={() => handleDeleteBlock(block.id)}
-                    className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                    title="Delete Block"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+                {/* Description Editor */}
+                {block.type === 'text' && block.description !== undefined && showDescriptions && (
+                  <div className="mt-2 ml-4 mr-10 pl-4 border-l-2 border-emerald-200">
+                    <AutoResizeTextarea
+                      value={block.description}
+                      onChange={(e: any) => handleBlockChange(block.id, { description: e.target.value })}
+                      placeholder="Enter block description..."
+                      className="w-full text-sm text-stone-600 bg-stone-50 p-2 rounded-md outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </div>
+                )}
               </div>
               );
             })}
@@ -405,6 +498,38 @@ export function EditorPanel() {
           <div className="h-64" /> {/* Bottom padding */}
         </div>
       </div>
+      
+      {/* TOC Sidebar */}
+      {tocSections.length > 0 && isTocOpen && (
+        <div className="w-64 border-l border-stone-200 bg-stone-50/50 flex-col hidden lg:flex shrink-0">
+          <div className="p-4 border-b border-stone-200 flex items-center bg-white">
+            <List size={16} className="text-stone-400 mr-2" />
+            <h3 className="font-semibold text-stone-900 text-sm uppercase tracking-wider">Block Directory</h3>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            {tocSections.map((section, idx) => (
+              <div key={`${section.documentId}-${idx}`}>
+                <h4 className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">{section.title}</h4>
+                <div className="space-y-1">
+                  {section.entries.map(entry => (
+                    <button
+                      key={entry.id}
+                      onClick={() => navigateToBlock(entry.id)}
+                      className={cn(
+                        "w-full text-left px-2 py-1.5 rounded-md text-sm transition-colors truncate",
+                        entry.completed ? "text-emerald-700 bg-emerald-50 hover:bg-emerald-100" : "text-stone-500 hover:bg-stone-200 hover:text-stone-800"
+                      )}
+                      title={entry.description}
+                    >
+                      {entry.description}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

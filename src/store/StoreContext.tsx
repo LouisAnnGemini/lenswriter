@@ -5,7 +5,7 @@ export type Work = { id: string; title: string; createdAt: number; order: number
 export type Character = { id: string; workId: string; name: string; description: string; order: number; customFields?: Record<string, any> };
 export type Chapter = { id: string; workId: string; title: string; order: number };
 export type Scene = { id: string; chapterId: string; title: string; order: number; characterIds: string[]; characterNotes?: Record<string, string> };
-export type Block = { id: string; documentId: string; type: 'text' | 'lens'; content: string; color?: string; order: number; notes?: string; linkedLensIds?: string[] };
+export type Block = { id: string; documentId: string; type: 'text' | 'lens'; content: string; color?: string; order: number; notes?: string; linkedLensIds?: string[]; description?: string; completed?: boolean };
 
 export type CharacterFieldType = 'text' | 'number' | 'select' | 'multiselect';
 export type CharacterFieldDef = { id: string; name: string; type: CharacterFieldType; options: string[] };
@@ -41,7 +41,7 @@ type Action =
   | { type: 'TOGGLE_SCENE_CHARACTER'; payload: { sceneId: string; characterId: string } }
   | { type: 'UPDATE_SCENE_CHARACTER_NOTE'; payload: { sceneId: string; characterId: string; note: string } }
   | { type: 'ADD_BLOCK'; payload: { documentId: string; type: 'text' | 'lens'; afterBlockId?: string } }
-  | { type: 'UPDATE_BLOCK'; payload: { id: string; content?: string; color?: string; notes?: string; linkedLensIds?: string[] } }
+  | { type: 'UPDATE_BLOCK'; payload: { id: string; content?: string; color?: string; notes?: string; linkedLensIds?: string[]; description?: string; completed?: boolean } }
   | { type: 'REMOVE_LENS'; payload: string }
   | { type: 'DELETE_BLOCK'; payload: string }
   | { type: 'ADD_CHARACTER'; payload: { workId: string; name: string } }
