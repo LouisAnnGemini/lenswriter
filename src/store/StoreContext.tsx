@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-export type Work = { id: string; title: string; createdAt: number; order: number };
-export type Character = { id: string; workId: string; name: string; description: string; order: number };
+export type Work = { id: string; title: string; createdAt: number; order: number; characterFields?: CharacterFieldDef[] };
+export type Character = { id: string; workId: string; name: string; description: string; order: number; customFields?: Record<string, any> };
 export type Chapter = { id: string; workId: string; title: string; order: number };
 export type Scene = { id: string; chapterId: string; title: string; order: number; characterIds: string[]; characterNotes?: Record<string, string> };
 export type Block = { id: string; documentId: string; type: 'text' | 'lens'; content: string; color?: string; order: number; notes?: string; linkedLensIds?: string[] };
+
+export type CharacterFieldType = 'text' | 'number' | 'select' | 'multiselect';
+export type CharacterFieldDef = { id: string; name: string; type: CharacterFieldType; options: string[] };
 
 export type StoreState = {
   works: Work[];
@@ -44,9 +47,14 @@ type Action =
   | { type: 'ADD_CHARACTER'; payload: { workId: string; name: string } }
   | { type: 'UPDATE_CHARACTER'; payload: { id: string; name?: string; description?: string } }
   | { type: 'REORDER_CHARACTERS'; payload: { workId: string; startIndex: number; endIndex: number } }
+  | { type: 'MERGE_BLOCK_UP'; payload: string }
   | { type: 'DELETE_CHAPTER'; payload: string }
   | { type: 'DELETE_SCENE'; payload: string }
-  | { type: 'IMPORT_DATA'; payload: StoreState };
+  | { type: 'IMPORT_DATA'; payload: StoreState }
+  | { type: 'ADD_CHARACTER_FIELD'; payload: { workId: string; field: CharacterFieldDef } }
+  | { type: 'UPDATE_CHARACTER_FIELD'; payload: { workId: string; fieldId: string; updates: Partial<CharacterFieldDef> } }
+  | { type: 'DELETE_CHARACTER_FIELD'; payload: { workId: string; fieldId: string } }
+  | { type: 'UPDATE_CHARACTER_CUSTOM_FIELD'; payload: { characterId: string; fieldId: string; value: any } };
 
 const initialWorkId = uuidv4();
 const initialChapterId = uuidv4();
@@ -167,6 +175,30 @@ function storeReducer(state: StoreState, action: Action): StoreState {
     }
     case 'UPDATE_CHAPTER':
       return { ...state, chapters: state.chapters.map(c => c.id === action.payload.id ? { ...c, title: action.payload.title } : c) };
+    case 'MERGE_BLOCK_UP': {
+      const blockId = action.payload;
+      const block = state.blocks.find(b => b.id === blockId);
+      if (!block || block.type !== 'text') return state;
+
+      const docBlocks = state.blocks
+        .filter(b => b.documentId === block.documentId)
+        .sort((a, b) => a.order - b.order);
+      
+      const blockIndex = docBlocks.findIndex(b => b.id === blockId);
+      if (blockIndex <= 0) return state; // Cannot merge first block
+      
+      const prevBlock = docBlocks[blockIndex - 1];
+      if (prevBlock.type !== 'text') return state; // Only merge text with text
+
+      const newContent = prevBlock.content + '\n\n' + block.content;
+
+      return {
+        ...state,
+        blocks: state.blocks
+          .map(b => b.id === prevBlock.id ? { ...b, content: newContent } : b)
+          .filter(b => b.id !== blockId)
+      };
+    }
     case 'DELETE_CHAPTER': {
       const chapterId = action.payload;
       const scenesToDelete = state.scenes.filter(s => s.chapterId === chapterId).map(s => s.id);
@@ -402,6 +434,42 @@ function storeReducer(state: StoreState, action: Action): StoreState {
     case 'IMPORT_DATA': {
       return action.payload;
     }
+    case 'ADD_CHARACTER_FIELD': {
+      return {
+        ...state,
+        works: state.works.map(w => w.id === action.payload.workId ? {
+          ...w,
+          characterFields: [...(w.characterFields || []), action.payload.field]
+        } : w)
+      };
+    }
+    case 'UPDATE_CHARACTER_FIELD': {
+      return {
+        ...state,
+        works: state.works.map(w => w.id === action.payload.workId ? {
+          ...w,
+          characterFields: (w.characterFields || []).map(f => f.id === action.payload.fieldId ? { ...f, ...action.payload.updates } : f)
+        } : w)
+      };
+    }
+    case 'DELETE_CHARACTER_FIELD': {
+      return {
+        ...state,
+        works: state.works.map(w => w.id === action.payload.workId ? {
+          ...w,
+          characterFields: (w.characterFields || []).filter(f => f.id !== action.payload.fieldId)
+        } : w)
+      };
+    }
+    case 'UPDATE_CHARACTER_CUSTOM_FIELD': {
+      return {
+        ...state,
+        characters: state.characters.map(c => c.id === action.payload.characterId ? {
+          ...c,
+          customFields: { ...(c.customFields || {}), [action.payload.fieldId]: action.payload.value }
+        } : c)
+      };
+    }
     default:
       return state;
   }
@@ -409,8 +477,31 @@ function storeReducer(state: StoreState, action: Action): StoreState {
 
 const StoreContext = createContext<{ state: StoreState; dispatch: React.Dispatch<Action> } | undefined>(undefined);
 
+const LOCAL_STORAGE_KEY = 'lenswriter_data';
+
 export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [state, dispatch] = useReducer(storeReducer, initialState);
+  const initializer = (initial: StoreState): StoreState => {
+    try {
+      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error("Failed to load from local storage", e);
+    }
+    return initial;
+  };
+
+  const [state, dispatch] = useReducer(storeReducer, initialState, initializer);
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.error("Failed to save to local storage", e);
+    }
+  }, [state]);
+
   return <StoreContext.Provider value={{ state, dispatch }}>{children}</StoreContext.Provider>;
 };
 

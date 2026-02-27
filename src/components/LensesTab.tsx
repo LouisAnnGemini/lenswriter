@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/StoreContext';
-import { Layers, MapPin, Edit2, Link as LinkIcon, X, Plus, Lock, Filter } from 'lucide-react';
+import { Layers, MapPin, Edit2, Link as LinkIcon, X, Plus, Lock, Filter, ExternalLink } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const LENS_COLORS = {
@@ -69,6 +69,19 @@ export function LensesTab() {
     }
   };
 
+  const handleNavigateToLens = (lensId: string, documentId: string) => {
+    dispatch({ type: 'SET_ACTIVE_TAB', payload: 'writing' });
+    dispatch({ type: 'SET_ACTIVE_DOCUMENT', payload: documentId });
+    setTimeout(() => {
+      const el = document.getElementById(`block-${lensId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('ring-2', 'ring-emerald-500', 'ring-offset-2');
+        setTimeout(() => el.classList.remove('ring-2', 'ring-emerald-500', 'ring-offset-2'), 2000);
+      }
+    }, 100);
+  };
+
   return (
     <div className="flex-1 flex overflow-hidden bg-stone-50/50">
       {/* Lenses Grid */}
@@ -129,9 +142,21 @@ export function LensesTab() {
                 )}
                 onClick={() => setSelectedLensId(lens.id)}
               >
-                <div className="flex items-center text-xs font-medium opacity-60 mb-3 pb-2 border-b border-black/10">
-                  <MapPin size={12} className="mr-1.5 shrink-0" />
-                  <span className="truncate">{getLensLocation(lens.documentId)}</span>
+                <div className="flex justify-between items-start mb-3 pb-2 border-b border-black/10">
+                  <div className="flex items-center text-xs font-medium opacity-60">
+                    <MapPin size={12} className="mr-1.5 shrink-0" />
+                    <span className="truncate">{getLensLocation(lens.documentId)}</span>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNavigateToLens(lens.id, lens.documentId);
+                    }}
+                    className="text-stone-500 hover:text-emerald-700 p-1 hover:bg-black/5 rounded transition-colors"
+                    title="Go to location in text"
+                  >
+                    <ExternalLink size={14} />
+                  </button>
                 </div>
                 
                 <div className="text-sm leading-relaxed font-medium line-clamp-6 mb-4">

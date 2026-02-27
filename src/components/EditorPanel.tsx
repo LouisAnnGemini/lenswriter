@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/StoreContext';
-import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check, ChevronLeft } from 'lucide-react';
+import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check, ChevronLeft, ArrowUpToLine } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const LENS_COLORS = {
@@ -91,6 +91,10 @@ export function EditorPanel() {
 
   const handleDeleteBlock = (id: string) => {
     dispatch({ type: 'DELETE_BLOCK', payload: id });
+  };
+
+  const handleMergeUp = (id: string) => {
+    dispatch({ type: 'MERGE_BLOCK_UP', payload: id });
   };
 
   const toggleCharacter = (charId: string) => {
@@ -251,11 +255,28 @@ export function EditorPanel() {
 
           {/* Blocks */}
           <div className="space-y-6">
-            {blocks.map((block, index) => (
-              <div key={block.id} id={`block-${block.id}`} className="group relative flex items-start -ml-12 pl-12 transition-all duration-500">
+            {blocks.map((block, index) => {
+              const prevBlock = index > 0 ? blocks[index - 1] : null;
+              const canMergeUp = block.type === 'text' && prevBlock && prevBlock.type === 'text';
+
+              return (
+              <div key={block.id} id={`block-${block.id}`} className="group relative flex flex-col transition-all duration-500 mb-2">
+                {/* Merge Up Button */}
+                {canMergeUp && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    <button
+                      onClick={() => handleMergeUp(block.id)}
+                      className="flex items-center px-2 py-1 bg-white border border-stone-200 shadow-sm text-xs font-medium text-stone-500 hover:text-stone-800 hover:bg-stone-50 rounded-full transition-colors"
+                      title="Merge with previous text block"
+                    >
+                      <ArrowUpToLine size={12} className="mr-1" /> Merge Up
+                    </button>
+                  </div>
+                )}
+
                 {/* Block Content */}
                 <div className={cn(
-                  "flex-1 rounded-lg transition-all",
+                  "w-full rounded-lg transition-all",
                   block.type === 'lens' ? cn("p-4 border-2", LENS_COLORS[block.color as keyof typeof LENS_COLORS] || LENS_COLORS.red) : ""
                 )}>
                   {block.type === 'lens' && (
@@ -333,31 +354,33 @@ export function EditorPanel() {
                 </div>
 
                 {/* Block Actions (Hover) */}
-                <div className="absolute right-full top-0 mr-2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col space-y-1">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 mt-2 px-2">
                   <button 
                     onClick={() => handleAddBlock('text', block.id)}
-                    className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-md"
+                    className="flex items-center px-2 py-1 text-xs font-medium text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded transition-colors"
                     title="Add Text Block Below"
                   >
-                    <AlignLeft size={16} />
+                    <AlignLeft size={14} className="mr-1" /> Add Text
                   </button>
                   <button 
                     onClick={() => handleAddBlock('lens', block.id)}
-                    className="p-1.5 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md"
+                    className="flex items-center px-2 py-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
                     title="Add Color Lens Below"
                   >
-                    <Highlighter size={16} />
+                    <Highlighter size={14} className="mr-1" /> Add Lens
                   </button>
+                  <div className="flex-1" />
                   <button 
                     onClick={() => handleDeleteBlock(block.id)}
-                    className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md"
+                    className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
                     title="Delete Block"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={14} />
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
 
             {blocks.length === 0 && (
               <div className="flex space-x-4 mt-8">

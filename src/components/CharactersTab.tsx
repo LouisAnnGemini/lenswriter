@@ -1,13 +1,38 @@
 import React, { useState } from 'react';
-import { useStore } from '../store/StoreContext';
+import { useStore, CharacterFieldType } from '../store/StoreContext';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { Users, Plus, GripVertical, User, MapPin, ChevronLeft } from 'lucide-react';
+import { Users, Plus, GripVertical, User, MapPin, ChevronLeft, Settings, X, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { v4 as uuidv4 } from 'uuid';
+
+function FieldOptionInput({ field, workId, dispatch }: { field: any, workId: string, dispatch: any }) {
+  const [localValue, setLocalValue] = useState(field.options.join(', '));
+  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalValue(e.target.value);
+    const newOptions = e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean);
+    dispatch({
+      type: 'UPDATE_CHARACTER_FIELD',
+      payload: { workId, fieldId: field.id, updates: { options: newOptions } }
+    });
+  };
+
+  return (
+    <input 
+      value={localValue} 
+      onChange={handleChange} 
+      className="w-full border border-stone-200 p-2 rounded-md text-sm outline-none focus:border-emerald-500" 
+      placeholder="e.g. Male, Female, Other" 
+    />
+  );
+}
 
 export function CharactersTab() {
   const { state, dispatch } = useStore();
   const activeWorkId = state.activeWorkId;
+  const activeWork = state.works.find(w => w.id === activeWorkId);
   const [activeCharId, setActiveCharId] = useState<string | null>(null);
+  const [showFieldManager, setShowFieldManager] = useState(false);
 
   if (!activeWorkId) return <div className="flex-1 flex items-center justify-center text-stone-400">Select a work</div>;
 
@@ -24,12 +49,18 @@ export function CharactersTab() {
   };
 
   const handleAddCharacter = () => {
-    const name = prompt('Character name:');
-    if (name) dispatch({ type: 'ADD_CHARACTER', payload: { workId: activeWorkId, name } });
+    dispatch({ type: 'ADD_CHARACTER', payload: { workId: activeWorkId, name: 'New Character' } });
   };
 
   const handleUpdateCharacter = (id: string, updates: any) => {
     dispatch({ type: 'UPDATE_CHARACTER', payload: { id, ...updates } });
+  };
+
+  const handleMultiSelectToggle = (charId: string, fieldId: string, option: string, currentValues: string[]) => {
+    const newValues = currentValues.includes(option)
+      ? currentValues.filter(v => v !== option)
+      : [...currentValues, option];
+    dispatch({ type: 'UPDATE_CHARACTER_CUSTOM_FIELD', payload: { characterId: charId, fieldId, value: newValues } });
   };
 
   // Calculate appearances
@@ -133,6 +164,75 @@ export function CharactersTab() {
               <div className="h-1 w-12 bg-emerald-500 rounded-full" />
             </div>
 
+            {/* Custom Fields */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider">Attributes</label>
+                <button onClick={() => setShowFieldManager(true)} className="text-xs flex items-center text-stone-500 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-2 py-1 rounded transition-colors">
+                  <Settings size={12} className="mr-1" /> Configure Fields
+                </button>
+              </div>
+              
+              {(!activeWork?.characterFields || activeWork.characterFields.length === 0) ? (
+                <div className="text-sm text-stone-400 italic bg-stone-50 p-4 rounded-xl border border-stone-100 text-center">
+                  No custom fields defined. Click "Configure Fields" to add age, gender, tags, etc.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-stone-50 p-4 rounded-xl border border-stone-100">
+                  {activeWork.characterFields.map(field => {
+                    const value = activeChar.customFields?.[field.id];
+                    return (
+                      <div key={field.id} className="space-y-1">
+                        <label className="block text-xs font-medium text-stone-500">{field.name}</label>
+                        {field.type === 'text' && (
+                          <textarea value={value || ''} onChange={e => dispatch({type: 'UPDATE_CHARACTER_CUSTOM_FIELD', payload: {characterId: activeChar.id, fieldId: field.id, value: e.target.value}})} className="w-full text-sm p-2 rounded border border-stone-200 outline-none focus:border-emerald-500 bg-white resize-y min-h-[42px] whitespace-normal break-words" rows={1} />
+                        )}
+                        {field.type === 'number' && (
+                          <input type="number" value={value || ''} onChange={e => dispatch({type: 'UPDATE_CHARACTER_CUSTOM_FIELD', payload: {characterId: activeChar.id, fieldId: field.id, value: e.target.value ? Number(e.target.value) : ''}})} className="w-full text-sm p-2 rounded border border-stone-200 outline-none focus:border-emerald-500 bg-white" />
+                        )}
+                        {field.type === 'select' && (
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {field.options.map(opt => {
+                              const currentValue = Array.isArray(value) ? value[0] : value;
+                              const isSelected = currentValue === opt;
+                              return (
+                                <button
+                                  key={opt}
+                                  onClick={() => {
+                                    const newValue = isSelected ? '' : opt;
+                                    dispatch({type: 'UPDATE_CHARACTER_CUSTOM_FIELD', payload: {characterId: activeChar.id, fieldId: field.id, value: newValue}});
+                                  }}
+                                  className={cn("px-2.5 py-1 text-xs rounded-full border transition-colors", isSelected ? "bg-emerald-100 border-emerald-500 text-emerald-800 font-medium" : "bg-white border-stone-200 text-stone-600 hover:border-stone-300")}
+                                >
+                                  {opt}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {field.type === 'multiselect' && (
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {field.options.map(opt => {
+                              const isSelected = (value || []).includes(opt);
+                              return (
+                                <button
+                                  key={opt}
+                                  onClick={() => handleMultiSelectToggle(activeChar.id, field.id, opt, value || [])}
+                                  className={cn("px-2.5 py-1 text-xs rounded-full border transition-colors", isSelected ? "bg-emerald-100 border-emerald-500 text-emerald-800 font-medium" : "bg-white border-stone-200 text-stone-600 hover:border-stone-300")}
+                                >
+                                  {opt}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* Description */}
             <div>
               <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-4">Background & Description</label>
@@ -202,6 +302,77 @@ export function CharactersTab() {
         <div className="hidden md:flex flex-1 flex-col items-center justify-center text-stone-400">
           <Users size={48} className="mb-4 opacity-20" />
           <p>Select or create a character to view details.</p>
+        </div>
+      )}
+
+      {/* Field Manager Modal */}
+      {showFieldManager && activeWorkId && (
+        <div className="fixed inset-0 bg-stone-900/50 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="p-4 border-b border-stone-200 flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-stone-900">Configure Character Fields</h2>
+              <button onClick={() => setShowFieldManager(false)} className="text-stone-400 hover:text-stone-600 p-1 rounded-md hover:bg-stone-100"><X size={20}/></button>
+            </div>
+            <div className="p-4 overflow-y-auto flex-1 space-y-4 bg-stone-50/50">
+              <p className="text-sm text-stone-500 mb-4">Define custom attributes (like Age, Gender, Role) for all characters in this work.</p>
+              
+              {activeWork?.characterFields?.map(field => (
+                <div key={field.id} className="bg-white border border-stone-200 p-4 rounded-xl flex gap-4 items-start shadow-sm">
+                  <div className="flex-1 space-y-3">
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <label className="block text-xs font-medium text-stone-500 mb-1">Field Name</label>
+                        <input 
+                          value={field.name} 
+                          onChange={e => dispatch({type: 'UPDATE_CHARACTER_FIELD', payload: {workId: activeWorkId, fieldId: field.id, updates: {name: e.target.value}}})} 
+                          className="w-full border border-stone-200 p-2 rounded-md text-sm outline-none focus:border-emerald-500" 
+                          placeholder="e.g. Age, Gender, Faction" 
+                        />
+                      </div>
+                      <div className="w-40">
+                        <label className="block text-xs font-medium text-stone-500 mb-1">Field Type</label>
+                        <select 
+                          value={field.type} 
+                          onChange={e => dispatch({type: 'UPDATE_CHARACTER_FIELD', payload: {workId: activeWorkId, fieldId: field.id, updates: {type: e.target.value as CharacterFieldType}}})} 
+                          className="w-full border border-stone-200 p-2 rounded-md text-sm outline-none focus:border-emerald-500 bg-white"
+                        >
+                          <option value="text">Text</option>
+                          <option value="number">Number</option>
+                          <option value="select">Single Select</option>
+                          <option value="multiselect">Multi Select</option>
+                        </select>
+                      </div>
+                    </div>
+                    {(field.type === 'select' || field.type === 'multiselect') && (
+                      <div>
+                        <label className="block text-xs font-medium text-stone-500 mb-1">Options (comma separated)</label>
+                        <FieldOptionInput field={field} workId={activeWorkId} dispatch={dispatch} />
+                      </div>
+                    )}
+                  </div>
+                  <button 
+                    onClick={() => { if(window.confirm('Delete this field? All characters will lose data for this field.')) dispatch({type: 'DELETE_CHARACTER_FIELD', payload: {workId: activeWorkId, fieldId: field.id}}) }} 
+                    className="text-stone-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-md transition-colors mt-5"
+                    title="Delete Field"
+                  >
+                    <Trash2 size={18}/>
+                  </button>
+                </div>
+              ))}
+              
+              <button 
+                onClick={() => dispatch({type: 'ADD_CHARACTER_FIELD', payload: {workId: activeWorkId, field: {id: uuidv4(), name: 'New Field', type: 'text', options: []}}})} 
+                className="w-full py-3 border-2 border-dashed border-stone-300 rounded-xl text-stone-500 hover:bg-stone-100 hover:text-stone-700 hover:border-stone-400 flex justify-center items-center font-medium transition-colors"
+              >
+                <Plus size={18} className="mr-2"/> Add Custom Field
+              </button>
+            </div>
+            <div className="p-4 border-t border-stone-200 flex justify-end">
+              <button onClick={() => setShowFieldManager(false)} className="px-4 py-2 bg-stone-900 text-white rounded-md text-sm font-medium hover:bg-stone-800 transition-colors">
+                Done
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
