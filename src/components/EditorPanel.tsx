@@ -9,6 +9,7 @@ const LENS_COLORS = {
   green: 'bg-emerald-50 border-emerald-200 text-emerald-900',
   yellow: 'bg-amber-50 border-amber-200 text-amber-900',
   purple: 'bg-purple-50 border-purple-200 text-purple-900',
+  black: 'bg-stone-900 border-stone-700 text-stone-100',
 };
 
 const AutoResizeTextarea = ({ value, onChange, className, placeholder }: any) => {
@@ -269,6 +270,7 @@ export function EditorPanel() {
                               color === 'green' && "bg-emerald-400",
                               color === 'yellow' && "bg-amber-400",
                               color === 'purple' && "bg-purple-400",
+                              color === 'black' && "bg-stone-900",
                               block.color === color && "ring-2 ring-offset-1 ring-stone-400"
                             )}
                           />
@@ -295,10 +297,11 @@ export function EditorPanel() {
                   <AutoResizeTextarea
                     value={block.content}
                     onChange={(e: any) => handleBlockChange(block.id, e.target.value)}
-                    placeholder={block.type === 'lens' ? "Enter lens content..." : "Start writing..."}
+                    placeholder={block.type === 'lens' ? (block.color === 'black' ? "Hidden content..." : "Enter lens content...") : "Start writing..."}
                     className={cn(
                       "w-full outline-none bg-transparent",
-                      block.type === 'lens' ? "text-sm font-medium leading-relaxed" : "text-lg leading-relaxed text-stone-800 font-serif"
+                      block.type === 'lens' ? "text-sm font-medium leading-relaxed" : "text-lg leading-relaxed text-stone-800 font-serif",
+                      block.type === 'lens' && block.color === 'black' ? "text-transparent focus:text-stone-100 placeholder:text-stone-700 focus:placeholder:text-stone-500 selection:bg-stone-700 selection:text-stone-100" : ""
                     )}
                   />
                   
@@ -311,10 +314,15 @@ export function EditorPanel() {
                           <button
                             key={linkedId}
                             onClick={() => navigateToLens(linkedId)}
-                            className="text-xs flex items-center bg-black/5 hover:bg-black/10 px-2 py-1 rounded transition-colors font-medium"
+                            className={cn(
+                              "text-xs flex items-center px-2 py-1 rounded transition-colors font-medium",
+                              block.color === 'black' ? "bg-white/10 hover:bg-white/20 text-stone-300" : "bg-black/5 hover:bg-black/10 text-stone-700"
+                            )}
                           >
                             <LinkIcon size={10} className="mr-1 shrink-0" />
-                            <span className="truncate max-w-[200px]">{linkedLens.content || 'Empty lens'}</span>
+                            <span className="truncate max-w-[200px]">
+                              {linkedLens.color === 'black' ? 'Hidden Content' : (linkedLens.content || 'Empty lens')}
+                            </span>
                           </button>
                         );
                       })}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/StoreContext';
-import { Layers, MapPin, Edit2, Link as LinkIcon, X, Plus } from 'lucide-react';
+import { Layers, MapPin, Edit2, Link as LinkIcon, X, Plus, Lock, Filter } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const LENS_COLORS = {
@@ -9,12 +9,15 @@ const LENS_COLORS = {
   green: 'bg-emerald-50 border-emerald-200 text-emerald-900',
   yellow: 'bg-amber-50 border-amber-200 text-amber-900',
   purple: 'bg-purple-50 border-purple-200 text-purple-900',
+  black: 'bg-stone-900 border-stone-700 text-stone-100',
 };
 
 export function LensesTab() {
   const { state, dispatch } = useStore();
   const activeWorkId = state.activeWorkId;
   const [selectedLensId, setSelectedLensId] = useState<string | null>(null);
+  const [filterColor, setFilterColor] = useState<string | 'all'>('all');
+  const [filterChapterId, setFilterChapterId] = useState<string | 'all'>('all');
 
   if (!activeWorkId) return <div className="flex-1 flex items-center justify-center text-stone-400">Select a work</div>;
 
@@ -23,7 +26,25 @@ export function LensesTab() {
   const workScenes = state.scenes.filter(s => workChapters.some(c => c.id === s.chapterId));
   const documentIds = [...workChapters.map(c => c.id), ...workScenes.map(s => s.id)];
   
-  const lenses = state.blocks.filter(b => b.type === 'lens' && documentIds.includes(b.documentId));
+  let lenses = state.blocks.filter(b => b.type === 'lens' && documentIds.includes(b.documentId));
+
+  // Apply filters
+  if (filterColor !== 'all') {
+    lenses = lenses.filter(l => l.color === filterColor);
+  }
+
+  if (filterChapterId !== 'all') {
+    lenses = lenses.filter(l => {
+      // Direct chapter lens
+      if (l.documentId === filterChapterId) return true;
+      
+      // Scene lens belonging to this chapter
+      const scene = state.scenes.find(s => s.id === l.documentId);
+      if (scene && scene.chapterId === filterChapterId) return true;
+      
+      return false;
+    });
+  }
 
   const getLensLocation = (docId: string) => {
     const scene = state.scenes.find(s => s.id === docId);
@@ -58,10 +79,41 @@ export function LensesTab() {
               <h2 className="text-2xl font-serif font-semibold text-stone-900">Color Lenses</h2>
               <p className="text-sm text-stone-500 mt-1">Global summary of all highlighted information.</p>
             </div>
-            <div className="flex space-x-2">
-              {Object.keys(LENS_COLORS).map(color => (
-                <div key={color} className={cn("w-4 h-4 rounded-full border border-black/10", color === 'red' && "bg-red-400", color === 'blue' && "bg-blue-400", color === 'green' && "bg-emerald-400", color === 'yellow' && "bg-amber-400", color === 'purple' && "bg-purple-400")} />
-              ))}
+            <div className="flex items-center space-x-4">
+              {/* Chapter Filter */}
+              <div className="flex items-center space-x-2 bg-white border border-stone-200 rounded-lg px-3 py-1.5 shadow-sm">
+                <Filter size={14} className="text-stone-400" />
+                <select 
+                  value={filterChapterId}
+                  onChange={(e) => setFilterChapterId(e.target.value)}
+                  className="text-xs font-medium bg-transparent border-none outline-none text-stone-600 cursor-pointer"
+                >
+                  <option value="all">All Chapters</option>
+                  {workChapters.sort((a, b) => a.order - b.order).map(chap => (
+                    <option key={chap.id} value={chap.id}>{chap.title}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Color Filter */}
+              <div className="flex items-center space-x-2 bg-white border border-stone-200 rounded-lg px-3 py-1.5 shadow-sm">
+                <div 
+                  className={cn(
+                    "w-3 h-3 rounded-full border border-black/10",
+                    filterColor === 'all' ? "bg-stone-200" : (filterColor === 'black' ? "bg-stone-900" : `bg-${filterColor === 'green' ? 'emerald' : (filterColor === 'yellow' ? 'amber' : filterColor)}-400`)
+                  )} 
+                />
+                <select 
+                  value={filterColor}
+                  onChange={(e) => setFilterColor(e.target.value)}
+                  className="text-xs font-medium bg-transparent border-none outline-none text-stone-600 cursor-pointer"
+                >
+                  <option value="all">All Colors</option>
+                  {Object.keys(LENS_COLORS).map(color => (
+                    <option key={color} value={color}>{color.charAt(0).toUpperCase() + color.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -83,7 +135,11 @@ export function LensesTab() {
                 </div>
                 
                 <div className="text-sm leading-relaxed font-medium line-clamp-6 mb-4">
-                  {lens.content || <span className="italic opacity-50">Empty lens...</span>}
+                  {lens.color === 'black' ? (
+                    <span className="text-stone-500 italic flex items-center"><Lock size={14} className="mr-1"/> Hidden Content</span>
+                  ) : (
+                    lens.content || <span className="italic opacity-50">Empty lens...</span>
+                  )}
                 </div>
 
                 {lens.notes && (
@@ -105,10 +161,15 @@ export function LensesTab() {
                             e.stopPropagation();
                             scrollToLens(linkedId);
                           }}
-                          className="text-xs flex items-center bg-black/5 hover:bg-black/10 px-2 py-1 rounded transition-colors font-medium"
+                          className={cn(
+                            "text-xs flex items-center px-2 py-1 rounded transition-colors font-medium",
+                            lens.color === 'black' ? "bg-white/10 hover:bg-white/20 text-stone-300" : "bg-black/5 hover:bg-black/10 text-stone-700"
+                          )}
                         >
                           <LinkIcon size={10} className="mr-1 shrink-0" />
-                          <span className="truncate max-w-[150px]">{linkedLens.content || 'Empty lens'}</span>
+                          <span className="truncate max-w-[150px]">
+                            {linkedLens.color === 'black' ? 'Hidden Content' : (linkedLens.content || 'Empty lens')}
+                          </span>
                         </button>
                       );
                     })}
@@ -174,9 +235,11 @@ export function LensesTab() {
                     <textarea
                       value={lens.content}
                       onChange={(e) => handleUpdateLens(lens.id, { content: e.target.value })}
+                      placeholder={lens.color === 'black' ? "Hidden content..." : "Enter lens content..."}
                       className={cn(
                         "w-full h-48 p-4 rounded-lg border-2 resize-none outline-none text-sm font-medium leading-relaxed",
-                        LENS_COLORS[lens.color as keyof typeof LENS_COLORS] || LENS_COLORS.red
+                        LENS_COLORS[lens.color as keyof typeof LENS_COLORS] || LENS_COLORS.red,
+                        lens.color === 'black' ? "text-transparent focus:text-stone-100 placeholder:text-stone-700 focus:placeholder:text-stone-500 selection:bg-stone-700 selection:text-stone-100" : ""
                       )}
                     />
                   </div>
