@@ -24,6 +24,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Plus, Trash2, Book, MousePointer2, Link2 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { WorkIcon } from './WorkIcon';
 
 // Custom Node for Work
 const WorkNode = ({ data, id }: NodeProps) => {
@@ -72,7 +73,7 @@ const WorkNode = ({ data, id }: NodeProps) => {
             className="flex items-center font-serif font-semibold text-stone-800 hover:text-emerald-600 transition-colors text-left flex-1 min-w-0"
             title="Go to Work"
           >
-            <Book size={16} className="mr-2 text-stone-400 shrink-0" />
+            <WorkIcon icon={work.icon} size={16} className="mr-2 shrink-0" />
             <span className="truncate">{work.title}</span>
           </button>
           <button
@@ -414,7 +415,7 @@ export function ArchitectureTab() {
                       onClick={() => handleAddWorkToWhiteboard(work.id)}
                       className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors flex items-center"
                     >
-                      <Book size={14} className="mr-2 opacity-50" />
+                      <WorkIcon icon={work.icon} size={14} className="mr-2 opacity-50" />
                       <span className="truncate">{work.title}</span>
                     </button>
                   ))

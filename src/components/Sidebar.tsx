@@ -3,6 +3,8 @@ import { useStore } from '../store/StoreContext';
 import { Book, Plus, ChevronLeft, ChevronRight, Download, Upload, Trash2, Edit2, GripVertical, Check, X, Menu, Network } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { cn } from '../lib/utils';
+import { WorkIcon } from './WorkIcon';
+import { WorkIconPicker } from './WorkIconPicker';
 
 export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, setMobileOpen?: (open: boolean) => void }) {
   const { state, dispatch } = useStore();
@@ -142,11 +144,15 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
                           snapshot.isDragging && "bg-stone-800 shadow-xl z-50"
                         )}
                       >
-                        {!collapsed && (
-                          <div {...provided.dragHandleProps} className="mr-2 text-stone-600 opacity-0 group-hover:opacity-100 cursor-grab">
-                            <GripVertical size={14} />
-                          </div>
-                        )}
+                        <div 
+                          {...provided.dragHandleProps} 
+                          className={cn(
+                            "mr-2 text-stone-600 opacity-0 group-hover:opacity-100 cursor-grab",
+                            collapsed && "hidden"
+                          )}
+                        >
+                          <GripVertical size={14} />
+                        </div>
                         
                         <div 
                           className="flex-1 flex items-center min-w-0 cursor-pointer"
@@ -155,7 +161,16 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
                             setMobileOpen?.(false);
                           }}
                         >
-                          <Book size={16} className={cn("shrink-0", collapsed ? "mx-auto" : "mr-3")} />
+                          <div onClick={(e) => e.stopPropagation()} className={cn("shrink-0", collapsed ? "mx-auto" : "mr-3")}>
+                            <WorkIconPicker 
+                              currentIcon={work.icon} 
+                              onSelect={(icon) => dispatch({ type: 'UPDATE_WORK', payload: { id: work.id, icon } })}
+                            >
+                              <div className="hover:opacity-80 transition-opacity">
+                                <WorkIcon icon={work.icon} size={16} />
+                              </div>
+                            </WorkIconPicker>
+                          </div>
                           {!collapsed && (
                             editingWorkId === work.id ? (
                               <input

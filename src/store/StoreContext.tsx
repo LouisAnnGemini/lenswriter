@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-export type Work = { id: string; title: string; createdAt: number; order: number; characterFields?: CharacterFieldDef[]; lensesDescription?: string };
+export type Work = { id: string; title: string; createdAt: number; order: number; characterFields?: CharacterFieldDef[]; lensesDescription?: string; icon?: string };
 export type Character = { id: string; workId: string; name: string; description: string; order: number; customFields?: Record<string, any> };
 export type Chapter = { id: string; workId: string; title: string; order: number };
 export type Scene = { id: string; chapterId: string; title: string; order: number; characterIds: string[]; characterNotes?: Record<string, string> };
@@ -40,7 +40,7 @@ export type StoreState = {
 
 type Action =
   | { type: 'ADD_WORK'; payload: { title: string } }
-  | { type: 'UPDATE_WORK'; payload: { id: string; title?: string; lensesDescription?: string } }
+  | { type: 'UPDATE_WORK'; payload: { id: string; title?: string; lensesDescription?: string; icon?: string } }
   | { type: 'DELETE_WORK'; payload: string }
   | { type: 'REORDER_WORKS'; payload: { startIndex: number; endIndex: number } }
   | { type: 'SET_ACTIVE_WORK'; payload: string }
@@ -134,6 +134,7 @@ function storeReducer(state: StoreState, action: Action): StoreState {
       const chaptersToDelete = state.chapters.filter(c => c.workId === workId).map(c => c.id);
       const scenesToDelete = state.scenes.filter(s => chaptersToDelete.includes(s.chapterId)).map(s => s.id);
       const docsToDelete = [...chaptersToDelete, ...scenesToDelete];
+      const blocksToDelete = state.blocks.filter(b => docsToDelete.includes(b.documentId)).map(b => b.id);
       const nodesToDelete = (state.whiteboardNodes || []).filter(n => n.workId === workId).map(n => n.id);
 
       return {
@@ -142,7 +143,12 @@ function storeReducer(state: StoreState, action: Action): StoreState {
         chapters: state.chapters.filter(c => c.workId !== workId),
         scenes: state.scenes.filter(s => !chaptersToDelete.includes(s.chapterId)),
         characters: state.characters.filter(c => c.workId !== workId),
-        blocks: state.blocks.filter(b => !docsToDelete.includes(b.documentId)),
+        blocks: state.blocks.filter(b => !docsToDelete.includes(b.documentId)).map(b => {
+          if (b.linkedLensIds && b.linkedLensIds.some(id => blocksToDelete.includes(id))) {
+            return { ...b, linkedLensIds: b.linkedLensIds.filter(id => !blocksToDelete.includes(id)) };
+          }
+          return b;
+        }),
         whiteboardNodes: (state.whiteboardNodes || []).filter(n => n.workId !== workId),
         whiteboardEdges: (state.whiteboardEdges || []).filter(e => !nodesToDelete.includes(e.source) && !nodesToDelete.includes(e.target)),
         activeWorkId: state.activeWorkId === workId ? null : state.activeWorkId,
@@ -160,8 +166,25 @@ function storeReducer(state: StoreState, action: Action): StoreState {
         works: updatedWorks
       };
     }
-    case 'SET_ACTIVE_WORK':
-      return { ...state, activeWorkId: action.payload, activeDocumentId: null };
+    case 'SET_ACTIVE_WORK': {
+      const workId = action.payload;
+      // Find the first chapter of this work
+      const firstChapter = state.chapters
+        .filter(c => c.workId === workId)
+        .sort((a, b) => a.order - b.order)[0];
+      
+      let firstDocId = null;
+      if (firstChapter) {
+        // Find the first scene of this chapter
+        const firstScene = state.scenes
+          .filter(s => s.chapterId === firstChapter.id)
+          .sort((a, b) => a.order - b.order)[0];
+        
+        firstDocId = firstScene ? firstScene.id : firstChapter.id;
+      }
+      
+      return { ...state, activeWorkId: workId, activeDocumentId: firstDocId };
+    }
     case 'SET_ACTIVE_DOCUMENT':
       return { ...state, activeDocumentId: action.payload };
     case 'SET_ACTIVE_TAB':
@@ -235,12 +258,18 @@ function storeReducer(state: StoreState, action: Action): StoreState {
       const chapterId = action.payload;
       const scenesToDelete = state.scenes.filter(s => s.chapterId === chapterId).map(s => s.id);
       const docsToDelete = [chapterId, ...scenesToDelete];
+      const blocksToDelete = state.blocks.filter(b => docsToDelete.includes(b.documentId)).map(b => b.id);
       
       return {
         ...state,
         chapters: state.chapters.filter(c => c.id !== chapterId),
         scenes: state.scenes.filter(s => s.chapterId !== chapterId),
-        blocks: state.blocks.filter(b => !docsToDelete.includes(b.documentId)),
+        blocks: state.blocks.filter(b => !docsToDelete.includes(b.documentId)).map(b => {
+          if (b.linkedLensIds && b.linkedLensIds.some(id => blocksToDelete.includes(id))) {
+            return { ...b, linkedLensIds: b.linkedLensIds.filter(id => !blocksToDelete.includes(id)) };
+          }
+          return b;
+        }),
         activeDocumentId: state.activeDocumentId === chapterId || scenesToDelete.includes(state.activeDocumentId!) ? null : state.activeDocumentId
       };
     }
@@ -287,10 +316,16 @@ function storeReducer(state: StoreState, action: Action): StoreState {
       return { ...state, scenes: state.scenes.map(s => s.id === action.payload.id ? { ...s, title: action.payload.title } : s) };
     case 'DELETE_SCENE': {
       const sceneId = action.payload;
+      const blocksToDelete = state.blocks.filter(b => b.documentId === sceneId).map(b => b.id);
       return {
         ...state,
         scenes: state.scenes.filter(s => s.id !== sceneId),
-        blocks: state.blocks.filter(b => b.documentId !== sceneId),
+        blocks: state.blocks.filter(b => b.documentId !== sceneId).map(b => {
+          if (b.linkedLensIds && b.linkedLensIds.some(id => blocksToDelete.includes(id))) {
+            return { ...b, linkedLensIds: b.linkedLensIds.filter(id => !blocksToDelete.includes(id)) };
+          }
+          return b;
+        }),
         activeDocumentId: state.activeDocumentId === sceneId ? null : state.activeDocumentId
       };
     }
@@ -397,9 +432,44 @@ function storeReducer(state: StoreState, action: Action): StoreState {
       };
     }
     case 'UPDATE_BLOCK': {
+      const { id, ...updates } = action.payload;
+      
+      if ('linkedLensIds' in updates) {
+        const oldBlock = state.blocks.find(b => b.id === id);
+        if (oldBlock) {
+          const oldLinks = oldBlock.linkedLensIds || [];
+          const newLinks = updates.linkedLensIds || [];
+          
+          const addedLinks = newLinks.filter(lId => !oldLinks.includes(lId));
+          const removedLinks = oldLinks.filter(lId => !newLinks.includes(lId));
+
+          return {
+            ...state,
+            blocks: state.blocks.map(b => {
+              if (b.id === id) {
+                return { ...b, ...updates };
+              }
+              if (addedLinks.includes(b.id)) {
+                const currentLinks = b.linkedLensIds || [];
+                if (!currentLinks.includes(id)) {
+                  return { ...b, linkedLensIds: [...currentLinks, id] };
+                }
+              }
+              if (removedLinks.includes(b.id)) {
+                const currentLinks = b.linkedLensIds || [];
+                if (currentLinks.includes(id)) {
+                  return { ...b, linkedLensIds: currentLinks.filter(lId => lId !== id) };
+                }
+              }
+              return b;
+            })
+          };
+        }
+      }
+
       return {
         ...state,
-        blocks: state.blocks.map(b => b.id === action.payload.id ? { ...b, ...action.payload } : b)
+        blocks: state.blocks.map(b => b.id === id ? { ...b, ...updates } : b)
       };
     }
     case 'REMOVE_LENS': {

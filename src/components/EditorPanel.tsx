@@ -15,12 +15,45 @@ const LENS_COLORS = {
 const AutoResizeTextarea = ({ value, onChange, className, placeholder }: any) => {
   const ref = useRef<HTMLTextAreaElement>(null);
   
-  useEffect(() => {
+  const adjustHeight = React.useCallback(() => {
     if (ref.current) {
       ref.current.style.height = 'auto';
       ref.current.style.height = `${ref.current.scrollHeight}px`;
     }
-  }, [value]);
+  }, []);
+
+  useEffect(() => {
+    adjustHeight();
+  }, [value, adjustHeight]);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    let previousWidth = element.clientWidth;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      window.requestAnimationFrame(() => {
+        if (!element) return;
+        let widthChanged = false;
+        for (const entry of entries) {
+          if (entry.contentRect.width !== previousWidth) {
+            previousWidth = entry.contentRect.width;
+            widthChanged = true;
+          }
+        }
+        if (widthChanged) {
+          adjustHeight();
+        }
+      });
+    });
+
+    resizeObserver.observe(element);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [adjustHeight]);
 
   return (
     <textarea
@@ -411,6 +444,18 @@ export function EditorPanel() {
                           })}
                         </div>
                       )}
+
+                      {/* Description Editor */}
+                      {block.type === 'text' && block.description !== undefined && showDescriptions && (
+                        <div className="mt-2 pl-4 border-l-2 border-emerald-200">
+                          <AutoResizeTextarea
+                            value={block.description}
+                            onChange={(e: any) => handleBlockChange(block.id, { description: e.target.value })}
+                            placeholder="Enter block description..."
+                            className="w-full text-sm text-stone-600 bg-stone-50 p-2 rounded-md outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {/* Block Actions (Hover) */}
@@ -442,8 +487,7 @@ export function EditorPanel() {
                   {/* Right Side Actions for Text Blocks */}
                   {block.type === 'text' && (
                     <div className={cn(
-                      "flex flex-col items-center space-y-2 opacity-0 group-hover:opacity-100 transition-opacity pt-2 w-8 shrink-0",
-                      state.focusMode && "hidden"
+                      "flex flex-col items-center space-y-2 opacity-0 group-hover:opacity-100 transition-opacity pt-2 w-8 shrink-0"
                     )}>
                       <button 
                         onClick={() => toggleBlockDescription(block)}
@@ -462,18 +506,6 @@ export function EditorPanel() {
                     </div>
                   )}
                 </div>
-
-                {/* Description Editor */}
-                {block.type === 'text' && block.description !== undefined && showDescriptions && (
-                  <div className="mt-2 ml-4 mr-10 pl-4 border-l-2 border-emerald-200">
-                    <AutoResizeTextarea
-                      value={block.description}
-                      onChange={(e: any) => handleBlockChange(block.id, { description: e.target.value })}
-                      placeholder="Enter block description..."
-                      className="w-full text-sm text-stone-600 bg-stone-50 p-2 rounded-md outline-none focus:ring-1 focus:ring-emerald-500"
-                    />
-                  </div>
-                )}
               </div>
               );
             })}
