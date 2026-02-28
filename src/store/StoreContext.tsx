@@ -10,15 +10,31 @@ export type Block = { id: string; documentId: string; type: 'text' | 'lens'; con
 export type CharacterFieldType = 'text' | 'number' | 'select' | 'multiselect';
 export type CharacterFieldDef = { id: string; name: string; type: CharacterFieldType; options: string[] };
 
+export type WhiteboardNode = {
+  id: string;
+  workId: string;
+  position: { x: number; y: number };
+  description?: string;
+};
+
+export type WhiteboardEdge = {
+  id: string;
+  source: string;
+  target: string;
+  label?: string;
+};
+
 export type StoreState = {
   works: Work[];
   characters: Character[];
   chapters: Chapter[];
   scenes: Scene[];
   blocks: Block[];
+  whiteboardNodes: WhiteboardNode[];
+  whiteboardEdges: WhiteboardEdge[];
   activeWorkId: string | null;
   activeDocumentId: string | null;
-  activeTab: 'writing' | 'lenses' | 'characters';
+  activeTab: 'writing' | 'lenses' | 'characters' | 'architecture';
   focusMode: boolean;
 };
 
@@ -29,7 +45,7 @@ type Action =
   | { type: 'REORDER_WORKS'; payload: { startIndex: number; endIndex: number } }
   | { type: 'SET_ACTIVE_WORK'; payload: string }
   | { type: 'SET_ACTIVE_DOCUMENT'; payload: string | null }
-  | { type: 'SET_ACTIVE_TAB'; payload: 'writing' | 'lenses' | 'characters' }
+  | { type: 'SET_ACTIVE_TAB'; payload: 'writing' | 'lenses' | 'characters' | 'architecture' }
   | { type: 'TOGGLE_FOCUS_MODE' }
   | { type: 'ADD_CHAPTER'; payload: { workId: string; title: string } }
   | { type: 'UPDATE_CHAPTER'; payload: { id: string; title: string } }
@@ -55,7 +71,15 @@ type Action =
   | { type: 'ADD_CHARACTER_FIELD'; payload: { workId: string; field: CharacterFieldDef } }
   | { type: 'UPDATE_CHARACTER_FIELD'; payload: { workId: string; fieldId: string; updates: Partial<CharacterFieldDef> } }
   | { type: 'DELETE_CHARACTER_FIELD'; payload: { workId: string; fieldId: string } }
-  | { type: 'UPDATE_CHARACTER_CUSTOM_FIELD'; payload: { characterId: string; fieldId: string; value: any } };
+  | { type: 'UPDATE_CHARACTER_CUSTOM_FIELD'; payload: { characterId: string; fieldId: string; value: any } }
+  | { type: 'ADD_WHITEBOARD_NODE'; payload: { workId: string; position: { x: number; y: number } } }
+  | { type: 'UPDATE_WHITEBOARD_NODE'; payload: { id: string; position?: { x: number; y: number }; description?: string } }
+  | { type: 'DELETE_WHITEBOARD_NODE'; payload: string }
+  | { type: 'ADD_WHITEBOARD_EDGE'; payload: { source: string; target: string; label?: string } }
+  | { type: 'UPDATE_WHITEBOARD_EDGE'; payload: { id: string; label: string } }
+  | { type: 'DELETE_WHITEBOARD_EDGE'; payload: string }
+  | { type: 'SET_WHITEBOARD_NODES'; payload: WhiteboardNode[] }
+  | { type: 'SET_WHITEBOARD_EDGES'; payload: WhiteboardEdge[] };
 
 const initialWorkId = uuidv4();
 const initialChapterId = uuidv4();
@@ -83,6 +107,10 @@ const initialState: StoreState = {
     { id: initialBlockId2, documentId: initialSceneId, type: 'lens', content: 'The victim held a small, silver locket tightly in their left hand. It bore the insignia of the old regime.', color: 'red', order: 1, notes: 'Crucial evidence. Connects to the mayor.', linkedLensIds: [] },
     { id: uuidv4(), documentId: initialSceneId, type: 'text', content: 'He sighed, knowing this case would be unlike any other.', order: 2 }
   ],
+  whiteboardNodes: [
+    { id: uuidv4(), workId: initialWorkId, position: { x: 100, y: 100 }, description: 'The first book in the series.' }
+  ],
+  whiteboardEdges: [],
   activeWorkId: initialWorkId,
   activeDocumentId: initialSceneId,
   activeTab: 'writing',
@@ -106,6 +134,7 @@ function storeReducer(state: StoreState, action: Action): StoreState {
       const chaptersToDelete = state.chapters.filter(c => c.workId === workId).map(c => c.id);
       const scenesToDelete = state.scenes.filter(s => chaptersToDelete.includes(s.chapterId)).map(s => s.id);
       const docsToDelete = [...chaptersToDelete, ...scenesToDelete];
+      const nodesToDelete = (state.whiteboardNodes || []).filter(n => n.workId === workId).map(n => n.id);
 
       return {
         ...state,
@@ -114,6 +143,8 @@ function storeReducer(state: StoreState, action: Action): StoreState {
         scenes: state.scenes.filter(s => !chaptersToDelete.includes(s.chapterId)),
         characters: state.characters.filter(c => c.workId !== workId),
         blocks: state.blocks.filter(b => !docsToDelete.includes(b.documentId)),
+        whiteboardNodes: (state.whiteboardNodes || []).filter(n => n.workId !== workId),
+        whiteboardEdges: (state.whiteboardEdges || []).filter(e => !nodesToDelete.includes(e.source) && !nodesToDelete.includes(e.target)),
         activeWorkId: state.activeWorkId === workId ? null : state.activeWorkId,
         activeDocumentId: docsToDelete.includes(state.activeDocumentId!) ? null : state.activeDocumentId
       };
@@ -483,6 +514,45 @@ function storeReducer(state: StoreState, action: Action): StoreState {
         } : c)
       };
     }
+    case 'ADD_WHITEBOARD_NODE': {
+      const newNode: WhiteboardNode = { id: uuidv4(), workId: action.payload.workId, position: action.payload.position };
+      return { ...state, whiteboardNodes: [...(state.whiteboardNodes || []), newNode] };
+    }
+    case 'UPDATE_WHITEBOARD_NODE': {
+      return {
+        ...state,
+        whiteboardNodes: (state.whiteboardNodes || []).map(n => n.id === action.payload.id ? { ...n, ...action.payload } : n)
+      };
+    }
+    case 'DELETE_WHITEBOARD_NODE': {
+      return {
+        ...state,
+        whiteboardNodes: (state.whiteboardNodes || []).filter(n => n.id !== action.payload),
+        whiteboardEdges: (state.whiteboardEdges || []).filter(e => e.source !== action.payload && e.target !== action.payload)
+      };
+    }
+    case 'ADD_WHITEBOARD_EDGE': {
+      const newEdge: WhiteboardEdge = { id: uuidv4(), source: action.payload.source, target: action.payload.target, label: action.payload.label };
+      return { ...state, whiteboardEdges: [...(state.whiteboardEdges || []), newEdge] };
+    }
+    case 'UPDATE_WHITEBOARD_EDGE': {
+      return {
+        ...state,
+        whiteboardEdges: (state.whiteboardEdges || []).map(e => e.id === action.payload.id ? { ...e, label: action.payload.label } : e)
+      };
+    }
+    case 'DELETE_WHITEBOARD_EDGE': {
+      return {
+        ...state,
+        whiteboardEdges: (state.whiteboardEdges || []).filter(e => e.id !== action.payload)
+      };
+    }
+    case 'SET_WHITEBOARD_NODES': {
+      return { ...state, whiteboardNodes: action.payload };
+    }
+    case 'SET_WHITEBOARD_EDGES': {
+      return { ...state, whiteboardEdges: action.payload };
+    }
     default:
       return state;
   }
@@ -497,7 +567,13 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     try {
       const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        return {
+          ...initial,
+          ...parsed,
+          whiteboardNodes: parsed.whiteboardNodes || initial.whiteboardNodes || [],
+          whiteboardEdges: parsed.whiteboardEdges || initial.whiteboardEdges || []
+        };
       }
     } catch (e) {
       console.error("Failed to load from local storage", e);

@@ -312,7 +312,7 @@ export function EditorPanel() {
           )}
 
           {/* Blocks */}
-          <div className="space-y-1">
+          <div className="space-y-4 transition-all">
             {blocks.map((block, index) => {
               const prevBlock = index > 0 ? blocks[index - 1] : null;
               const canMergeUp = block.type === 'text' && prevBlock && prevBlock.type === 'text';
@@ -414,7 +414,7 @@ export function EditorPanel() {
                     </div>
 
                     {/* Block Actions (Hover) */}
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 mt-1 px-2 h-6">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 px-2 absolute top-full left-0 z-10 bg-white/90 backdrop-blur-sm shadow-sm rounded-md border border-stone-200 py-0.5 mt-1">
                       <button 
                         onClick={() => handleAddBlock('text', block.id)}
                         className="flex items-center px-2 py-0.5 text-[10px] font-medium text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded transition-colors"
@@ -441,7 +441,10 @@ export function EditorPanel() {
 
                   {/* Right Side Actions for Text Blocks */}
                   {block.type === 'text' && (
-                    <div className="flex flex-col items-center space-y-2 opacity-0 group-hover:opacity-100 transition-opacity pt-2 w-8 shrink-0">
+                    <div className={cn(
+                      "flex flex-col items-center space-y-2 opacity-0 group-hover:opacity-100 transition-opacity pt-2 w-8 shrink-0",
+                      state.focusMode && "hidden"
+                    )}>
                       <button 
                         onClick={() => toggleBlockDescription(block)}
                         className={cn("p-1.5 rounded-md transition-colors", block.description !== undefined ? "text-emerald-600 bg-emerald-50" : "text-stone-400 hover:text-stone-600 hover:bg-stone-100")}

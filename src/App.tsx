@@ -6,6 +6,7 @@ import { OutlinePanel } from './components/OutlinePanel';
 import { EditorPanel } from './components/EditorPanel';
 import { LensesTab } from './components/LensesTab';
 import { CharactersTab } from './components/CharactersTab';
+import { ArchitectureTab } from './components/ArchitectureTab';
 import { Minimize2 } from 'lucide-react';
 
 function MainContent({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, setMobileOpen: (open: boolean) => void }) {
@@ -23,6 +24,7 @@ function MainContent({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, setMo
         )}
         {state.activeTab === 'lenses' && <LensesTab />}
         {state.activeTab === 'characters' && <CharactersTab />}
+        {state.activeTab === 'architecture' && <ArchitectureTab />}
       </div>
       
       {state.focusMode && (
