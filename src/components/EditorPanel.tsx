@@ -12,15 +12,26 @@ const LENS_COLORS = {
   black: 'bg-stone-900 border-stone-700 text-stone-100',
 };
 
-const AutoResizeTextarea = ({ value, onChange, className, placeholder }: any) => {
+const AutoResizeTextarea = ({ value, onChange, className, placeholder, scrollContainerRef }: any) => {
   const ref = useRef<HTMLTextAreaElement>(null);
   
   const adjustHeight = React.useCallback(() => {
     if (ref.current) {
+      const scrollContainer = scrollContainerRef?.current;
+      const currentScrollTop = scrollContainer ? scrollContainer.scrollTop : window.scrollY;
+      
       ref.current.style.height = 'auto';
       ref.current.style.height = `${ref.current.scrollHeight}px`;
+      
+      if (scrollContainer) {
+        if (scrollContainer.scrollTop !== currentScrollTop) {
+          scrollContainer.scrollTop = currentScrollTop;
+        }
+      } else if (window.scrollY !== currentScrollTop) {
+        window.scrollTo(window.scrollX, currentScrollTop);
+      }
     }
-  }, []);
+  }, [scrollContainerRef]);
 
   useLayoutEffect(() => {
     adjustHeight();
@@ -74,6 +85,8 @@ export function EditorPanel() {
   const [showDescriptions, setShowDescriptions] = useState(true);
   const activeDocId = state.activeDocumentId;
   const activeWorkId = state.activeWorkId;
+  const isFocusMode = state.focusMode;
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const activeDocument = state.scenes.find(s => s.id === activeDocId) || state.chapters.find(c => c.id === activeDocId);
   const isScene = state.scenes.some(s => s.id === activeDocId);
@@ -198,8 +211,18 @@ export function EditorPanel() {
       "flex-1 flex bg-white overflow-hidden relative transition-all duration-300",
       !activeDocId ? "hidden md:flex" : "flex"
     )}>
-      <div className="flex-1 overflow-y-auto px-4 py-8 md:px-8 md:py-12 lg:px-24 xl:px-48 pb-32 md:pb-12">
-        <div className="max-w-3xl mx-auto">
+      <div 
+        ref={scrollContainerRef}
+        className={cn(
+        "flex-1 overflow-y-auto pb-32 md:pb-12 transition-all duration-300",
+        isFocusMode 
+          ? "px-4 py-8 md:px-8 md:py-12 lg:px-24 xl:px-48" 
+          : "px-4 py-8 md:px-8 md:py-12 lg:px-12 xl:px-16"
+      )}>
+        <div className={cn(
+          "mx-auto transition-all duration-300",
+          isFocusMode ? "max-w-3xl" : "max-w-5xl"
+        )}>
           <div className="flex items-center justify-between mb-4">
             <input
               type="text"
@@ -329,6 +352,7 @@ export function EditorPanel() {
                           <div key={scene.id} className="flex items-start space-x-3">
                             <span className="text-xs font-mono text-stone-500 bg-stone-200 px-1.5 py-0.5 rounded mt-0.5 shrink-0">{sceneIndex}</span>
                             <AutoResizeTextarea
+                              scrollContainerRef={scrollContainerRef}
                               value={scene.characterNotes?.[charId] || ''}
                               onChange={(e: any) => dispatch({ type: 'UPDATE_SCENE_CHARACTER_NOTE', payload: { sceneId: scene.id, characterId: charId, note: e.target.value } })}
                               placeholder={`Notes for ${char.name} in this scene...`}
@@ -411,6 +435,7 @@ export function EditorPanel() {
                       )}
                       
                       <AutoResizeTextarea
+                        scrollContainerRef={scrollContainerRef}
                         value={block.content}
                         onChange={(e: any) => handleBlockChange(block.id, { content: e.target.value })}
                         placeholder={block.type === 'lens' ? (block.color === 'black' ? "Hidden content..." : "Enter lens content...") : "Start writing..."}
@@ -449,6 +474,7 @@ export function EditorPanel() {
                       {block.type === 'text' && block.description !== undefined && showDescriptions && (
                         <div className="mt-2 pl-4 border-l-2 border-emerald-200">
                           <AutoResizeTextarea
+                            scrollContainerRef={scrollContainerRef}
                             value={block.description}
                             onChange={(e: any) => handleBlockChange(block.id, { description: e.target.value })}
                             placeholder="Enter block description..."
