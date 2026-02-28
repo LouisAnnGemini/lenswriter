@@ -36,6 +36,7 @@ export type StoreState = {
   activeDocumentId: string | null;
   activeTab: 'writing' | 'lenses' | 'characters' | 'architecture';
   focusMode: boolean;
+  typewriterMode: boolean;
 };
 
 type Action =
@@ -47,6 +48,7 @@ type Action =
   | { type: 'SET_ACTIVE_DOCUMENT'; payload: string | null }
   | { type: 'SET_ACTIVE_TAB'; payload: 'writing' | 'lenses' | 'characters' | 'architecture' }
   | { type: 'TOGGLE_FOCUS_MODE' }
+  | { type: 'TOGGLE_TYPEWRITER_MODE' }
   | { type: 'ADD_CHAPTER'; payload: { workId: string; title: string } }
   | { type: 'UPDATE_CHAPTER'; payload: { id: string; title: string } }
   | { type: 'REORDER_CHAPTERS'; payload: { workId: string; startIndex: number; endIndex: number } }
@@ -115,6 +117,7 @@ const initialState: StoreState = {
   activeDocumentId: initialSceneId,
   activeTab: 'writing',
   focusMode: false,
+  typewriterMode: false,
 };
 
 function storeReducer(state: StoreState, action: Action): StoreState {
@@ -191,6 +194,8 @@ function storeReducer(state: StoreState, action: Action): StoreState {
       return { ...state, activeTab: action.payload };
     case 'TOGGLE_FOCUS_MODE':
       return { ...state, focusMode: !state.focusMode };
+    case 'TOGGLE_TYPEWRITER_MODE':
+      return { ...state, typewriterMode: !state.typewriterMode };
     case 'ADD_CHAPTER': {
       const chapters = state.chapters.filter(c => c.workId === action.payload.workId);
       const newChapterId = uuidv4();

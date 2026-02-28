@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useStore } from '../store/StoreContext';
 import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check, ChevronLeft, ArrowUpToLine, MessageSquare, CheckCircle2, List, PanelRightClose, PanelRightOpen, MessageSquareOff } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -22,7 +22,7 @@ const AutoResizeTextarea = ({ value, onChange, className, placeholder }: any) =>
     }
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     adjustHeight();
   }, [value, adjustHeight]);
 
@@ -345,13 +345,13 @@ export function EditorPanel() {
           )}
 
           {/* Blocks */}
-          <div className="space-y-4 transition-all">
+          <div className="space-y-4">
             {blocks.map((block, index) => {
               const prevBlock = index > 0 ? blocks[index - 1] : null;
               const canMergeUp = block.type === 'text' && prevBlock && prevBlock.type === 'text';
 
               return (
-              <div key={block.id} id={`block-${block.id}`} className="group relative flex flex-col transition-all duration-500">
+              <div key={block.id} id={`block-${block.id}`} className="group relative flex flex-col transition-colors duration-500">
                 {/* Merge Up Button */}
                 {canMergeUp && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
@@ -369,7 +369,7 @@ export function EditorPanel() {
                   <div className="flex-1 min-w-0">
                     {/* Block Content */}
                     <div className={cn(
-                      "w-full rounded-lg transition-all",
+                      "w-full rounded-lg transition-colors",
                       block.type === 'lens' ? cn("p-4 border-2", LENS_COLORS[block.color as keyof typeof LENS_COLORS] || LENS_COLORS.red) : ""
                     )}>
                       {block.type === 'lens' && (
