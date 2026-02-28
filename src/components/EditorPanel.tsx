@@ -312,13 +312,13 @@ export function EditorPanel() {
           )}
 
           {/* Blocks */}
-          <div className="space-y-6">
+          <div className="space-y-1">
             {blocks.map((block, index) => {
               const prevBlock = index > 0 ? blocks[index - 1] : null;
               const canMergeUp = block.type === 'text' && prevBlock && prevBlock.type === 'text';
 
               return (
-              <div key={block.id} id={`block-${block.id}`} className="group relative flex flex-col transition-all duration-500 mb-2">
+              <div key={block.id} id={`block-${block.id}`} className="group relative flex flex-col transition-all duration-500">
                 {/* Merge Up Button */}
                 {canMergeUp && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
@@ -414,27 +414,27 @@ export function EditorPanel() {
                     </div>
 
                     {/* Block Actions (Hover) */}
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 mt-2 px-2">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 mt-1 px-2 h-6">
                       <button 
                         onClick={() => handleAddBlock('text', block.id)}
-                        className="flex items-center px-2 py-1 text-xs font-medium text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded transition-colors"
+                        className="flex items-center px-2 py-0.5 text-[10px] font-medium text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded transition-colors"
                         title="Add Text Block Below"
                       >
-                        <AlignLeft size={14} className="mr-1" /> Add Text
+                        <AlignLeft size={12} className="mr-1" /> Add Text
                       </button>
                       <button 
                         onClick={() => handleAddBlock('lens', block.id)}
-                        className="flex items-center px-2 py-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
+                        className="flex items-center px-2 py-0.5 text-[10px] font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
                         title="Add Color Lens Below"
                       >
-                        <Highlighter size={14} className="mr-1" /> Add Lens
+                        <Highlighter size={12} className="mr-1" /> Add Lens
                       </button>
                       <button 
                         onClick={() => handleDeleteBlock(block.id)}
-                        className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                        className="p-1 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
                         title="Delete Block"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={12} />
                       </button>
                     </div>
                   </div>
