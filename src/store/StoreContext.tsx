@@ -34,9 +34,9 @@ export type StoreState = {
   whiteboardEdges: WhiteboardEdge[];
   activeWorkId: string | null;
   activeDocumentId: string | null;
-  activeTab: 'writing' | 'lenses' | 'characters' | 'architecture';
+  activeTab: 'writing' | 'lenses' | 'characters' | 'architecture' | 'compile';
   focusMode: boolean;
-  typewriterMode: boolean;
+  showDescriptions: boolean;
 };
 
 type Action =
@@ -46,9 +46,9 @@ type Action =
   | { type: 'REORDER_WORKS'; payload: { startIndex: number; endIndex: number } }
   | { type: 'SET_ACTIVE_WORK'; payload: string }
   | { type: 'SET_ACTIVE_DOCUMENT'; payload: string | null }
-  | { type: 'SET_ACTIVE_TAB'; payload: 'writing' | 'lenses' | 'characters' | 'architecture' }
+  | { type: 'SET_ACTIVE_TAB'; payload: 'writing' | 'lenses' | 'characters' | 'architecture' | 'compile' }
   | { type: 'TOGGLE_FOCUS_MODE' }
-  | { type: 'TOGGLE_TYPEWRITER_MODE' }
+  | { type: 'TOGGLE_SHOW_DESCRIPTIONS' }
   | { type: 'ADD_CHAPTER'; payload: { workId: string; title: string } }
   | { type: 'UPDATE_CHAPTER'; payload: { id: string; title: string } }
   | { type: 'REORDER_CHAPTERS'; payload: { workId: string; startIndex: number; endIndex: number } }
@@ -117,7 +117,7 @@ const initialState: StoreState = {
   activeDocumentId: initialSceneId,
   activeTab: 'writing',
   focusMode: false,
-  typewriterMode: false,
+  showDescriptions: true,
 };
 
 function storeReducer(state: StoreState, action: Action): StoreState {
@@ -194,8 +194,8 @@ function storeReducer(state: StoreState, action: Action): StoreState {
       return { ...state, activeTab: action.payload };
     case 'TOGGLE_FOCUS_MODE':
       return { ...state, focusMode: !state.focusMode };
-    case 'TOGGLE_TYPEWRITER_MODE':
-      return { ...state, typewriterMode: !state.typewriterMode };
+    case 'TOGGLE_SHOW_DESCRIPTIONS':
+      return { ...state, showDescriptions: !state.showDescriptions };
     case 'ADD_CHAPTER': {
       const chapters = state.chapters.filter(c => c.workId === action.payload.workId);
       const newChapterId = uuidv4();

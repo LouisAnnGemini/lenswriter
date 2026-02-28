@@ -62,9 +62,11 @@ export function WorkIconPicker({ currentIcon, onSelect, children }: WorkIconPick
     e.preventDefault();
     if (customEmoji) {
       // Get the first emoji/character
-      const emoji = Array.from(customEmoji)[0];
-      handleSelect(emoji);
-      setCustomEmoji('');
+      const emoji = Array.from(customEmoji)[0] as string;
+      if (emoji) {
+        handleSelect(emoji);
+        setCustomEmoji('');
+      }
     }
   };
 

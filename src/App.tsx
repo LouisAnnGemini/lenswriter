@@ -7,7 +7,9 @@ import { EditorPanel } from './components/EditorPanel';
 import { LensesTab } from './components/LensesTab';
 import { CharactersTab } from './components/CharactersTab';
 import { ArchitectureTab } from './components/ArchitectureTab';
-import { Minimize2 } from 'lucide-react';
+import { CompileTab } from './components/CompileTab';
+import { Minimize2, MessageSquare, MessageSquareOff } from 'lucide-react';
+import { cn } from './lib/utils';
 
 function MainContent({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, setMobileOpen: (open: boolean) => void }) {
   const { state, dispatch } = useStore();
@@ -25,16 +27,29 @@ function MainContent({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, setMo
         {state.activeTab === 'lenses' && <LensesTab />}
         {state.activeTab === 'characters' && <CharactersTab />}
         {state.activeTab === 'architecture' && <ArchitectureTab />}
+        {state.activeTab === 'compile' && <CompileTab />}
       </div>
       
       {state.focusMode && (
-        <button
-          onClick={() => dispatch({ type: 'TOGGLE_FOCUS_MODE' })}
-          className="fixed top-6 right-6 p-2 bg-white text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md shadow-sm border border-stone-200 transition-colors z-50"
-          title="Exit Focus Mode"
-        >
-          <Minimize2 size={20} />
-        </button>
+        <div className="fixed top-6 right-6 flex items-center space-x-2 z-50">
+          <button
+            onClick={() => dispatch({ type: 'TOGGLE_SHOW_DESCRIPTIONS' })}
+            className={cn(
+              "p-2 bg-white rounded-md shadow-sm border border-stone-200 transition-colors",
+              state.showDescriptions ? "text-emerald-600 hover:bg-emerald-50" : "text-stone-400 hover:text-stone-600 hover:bg-stone-100"
+            )}
+            title={state.showDescriptions ? "Hide Descriptions" : "Show Descriptions"}
+          >
+            {state.showDescriptions ? <MessageSquare size={20} /> : <MessageSquareOff size={20} />}
+          </button>
+          <button
+            onClick={() => dispatch({ type: 'TOGGLE_FOCUS_MODE' })}
+            className="p-2 bg-white text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md shadow-sm border border-stone-200 transition-colors"
+            title="Exit Focus Mode"
+          >
+            <Minimize2 size={20} />
+          </button>
+        </div>
       )}
     </div>
   );

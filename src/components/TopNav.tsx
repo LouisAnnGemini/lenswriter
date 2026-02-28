@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from '../store/StoreContext';
-import { Edit3, Layers, Users, Maximize2, Minimize2, Menu, ChevronLeft } from 'lucide-react';
+import { Edit3, Layers, Users, Maximize2, Minimize2, Menu, ChevronLeft, FileText, MessageSquare, MessageSquareOff } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => void }) {
@@ -12,6 +12,7 @@ export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => v
     { id: 'writing', label: 'Writing', icon: Edit3 },
     { id: 'lenses', label: 'Lenses', icon: Layers },
     { id: 'characters', label: 'Characters', icon: Users },
+    { id: 'compile', label: 'Compile', icon: FileText },
   ] as const;
 
   return (
@@ -57,7 +58,19 @@ export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => v
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2">
+          {state.activeTab === 'writing' && (
+            <button
+              onClick={() => dispatch({ type: 'TOGGLE_SHOW_DESCRIPTIONS' })}
+              className={cn(
+                "p-2 rounded-md transition-colors hidden md:block",
+                state.showDescriptions ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100" : "text-stone-400 hover:text-stone-600 hover:bg-stone-100"
+              )}
+              title={state.showDescriptions ? "Hide Descriptions" : "Show Descriptions"}
+            >
+              {state.showDescriptions ? <MessageSquare size={18} /> : <MessageSquareOff size={18} />}
+            </button>
+          )}
           <button
             onClick={() => dispatch({ type: 'TOGGLE_FOCUS_MODE' })}
             className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md transition-colors hidden md:block"

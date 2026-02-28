@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useStore } from '../store/StoreContext';
-import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check, ChevronLeft, ArrowUpToLine, MessageSquare, CheckCircle2, List, PanelRightClose, PanelRightOpen, MessageSquareOff } from 'lucide-react';
+import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check, ChevronLeft, ArrowUpToLine, MessageSquare, CheckCircle2, Circle, List, PanelRightClose, PanelRightOpen, MessageSquareOff } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const LENS_COLORS = {
@@ -82,7 +82,7 @@ export function EditorPanel() {
   const { state, dispatch } = useStore();
   const [copied, setCopied] = useState(false);
   const [isTocOpen, setIsTocOpen] = useState(true);
-  const [showDescriptions, setShowDescriptions] = useState(true);
+  const showDescriptions = state.showDescriptions;
   const activeDocId = state.activeDocumentId;
   const activeWorkId = state.activeWorkId;
   const isFocusMode = state.focusMode;
@@ -238,13 +238,6 @@ export function EditorPanel() {
               placeholder="Untitled..."
             />
             <div className="flex items-center space-x-2 ml-4">
-              <button
-                onClick={() => setShowDescriptions(!showDescriptions)}
-                className={cn("p-2 rounded-md transition-colors", showDescriptions ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100" : "text-stone-400 hover:text-stone-600 hover:bg-stone-100")}
-                title={showDescriptions ? "Hide Descriptions" : "Show Descriptions"}
-              >
-                {showDescriptions ? <MessageSquare size={20} /> : <MessageSquareOff size={20} />}
-              </button>
               {tocSections.length > 0 && (
                 <button
                   onClick={() => setIsTocOpen(!isTocOpen)}
@@ -472,14 +465,24 @@ export function EditorPanel() {
 
                       {/* Description Editor */}
                       {block.type === 'text' && block.description !== undefined && showDescriptions && (
-                        <div className="mt-2 pl-4 border-l-2 border-emerald-200">
+                        <div className="mt-2 pl-4 border-l-2 border-emerald-200 flex items-start gap-2">
                           <AutoResizeTextarea
                             scrollContainerRef={scrollContainerRef}
                             value={block.description}
                             onChange={(e: any) => handleBlockChange(block.id, { description: e.target.value })}
                             placeholder="Enter block description..."
-                            className="w-full text-sm text-stone-600 bg-stone-50 p-2 rounded-md outline-none focus:ring-1 focus:ring-emerald-500"
+                            className="flex-1 text-sm text-stone-600 bg-stone-50 p-2 rounded-md outline-none focus:ring-1 focus:ring-emerald-500"
                           />
+                          <button
+                            onClick={() => handleBlockChange(block.id, { completed: !block.completed })}
+                            className={cn(
+                              "mt-1 p-1 rounded-full transition-colors shrink-0",
+                              block.completed ? "text-emerald-500 hover:bg-emerald-50" : "text-stone-300 hover:text-stone-400 hover:bg-stone-100"
+                            )}
+                            title={block.completed ? "Mark as incomplete" : "Mark as complete"}
+                          >
+                            {block.completed ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+                          </button>
                         </div>
                       )}
                     </div>
