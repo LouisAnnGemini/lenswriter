@@ -291,6 +291,30 @@ export function LensesTab() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                  {/* Color Selection */}
+                  <div>
+                    <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Color</label>
+                    <div className="flex space-x-2">
+                      {Object.keys(LENS_COLORS).map(color => (
+                        <button
+                          key={color}
+                          onClick={() => handleUpdateLens(lens.id, { color })}
+                          className={cn(
+                            "w-6 h-6 rounded-full border border-black/10 transition-transform hover:scale-110",
+                            color === 'red' && "bg-red-400",
+                            color === 'blue' && "bg-blue-400",
+                            color === 'green' && "bg-emerald-400",
+                            color === 'yellow' && "bg-amber-400",
+                            color === 'purple' && "bg-purple-400",
+                            color === 'black' && "bg-stone-900",
+                            lens.color === color && "ring-2 ring-offset-2 ring-stone-400"
+                          )}
+                          title={color.charAt(0).toUpperCase() + color.slice(1)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Content Edit */}
                   <div>
                     <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Content</label>
