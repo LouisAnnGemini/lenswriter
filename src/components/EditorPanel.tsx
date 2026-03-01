@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useStore } from '../store/StoreContext';
-import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check, ChevronLeft, ArrowUpToLine, MessageSquare, CheckCircle2, Circle, List, PanelRightClose, PanelRightOpen, MessageSquareOff, Search, ExternalLink } from 'lucide-react';
+import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check, ChevronLeft, ArrowUpToLine, MessageSquare, CheckCircle2, Circle, List, PanelRightClose, PanelRightOpen, MessageSquareOff, Search, ExternalLink, Eye } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { FindReplaceBar } from './FindReplaceBar';
 
@@ -281,7 +281,12 @@ export function EditorPanel() {
                   dispatch({ type: 'UPDATE_CHAPTER', payload: { id: activeDocId, title: e.target.value } });
                 }
               }}
-              className="flex-1 text-2xl md:text-3xl font-serif font-semibold text-stone-900 outline-none placeholder:text-stone-300 bg-transparent whitespace-normal break-words"
+              className={cn(
+                "flex-1 outline-none placeholder:text-stone-300 bg-transparent whitespace-normal break-words",
+                state.disguiseMode 
+                  ? "font-mono text-base leading-snug text-black font-normal" 
+                  : "text-2xl md:text-3xl font-serif font-semibold text-stone-900"
+              )}
               placeholder="Untitled..."
             />
             <div className="flex items-center space-x-2 ml-4">
@@ -292,7 +297,7 @@ export function EditorPanel() {
               >
                 <Search size={20} />
               </button>
-              {tocSections.length > 0 && (
+              {tocSections.length > 0 && !state.disguiseMode && (
                 <button
                   onClick={() => setIsTocOpen(!isTocOpen)}
                   className={cn("p-2 rounded-md transition-colors hidden lg:flex", isTocOpen ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100" : "text-stone-400 hover:text-stone-600 hover:bg-stone-100")}
@@ -325,7 +330,7 @@ export function EditorPanel() {
             </div>
           </div>
 
-          {isScene && (
+          {isScene && !state.disguiseMode && (
             <div className="mb-12 flex items-center space-x-3">
               <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Parent Chapter:</label>
               <select
@@ -350,37 +355,39 @@ export function EditorPanel() {
           )}
 
           {/* Character Binding Area */}
-          <div className="mb-12 flex flex-wrap gap-2 items-center">
-            <span className="text-xs font-medium text-stone-400 uppercase tracking-wider mr-2">
-              {isScene ? 'Characters in Scene:' : 'Characters in Chapter:'}
-            </span>
-            
-            {characters.map(char => {
-              const isActive = isScene 
-                ? (activeDocument as any).characterIds.includes(char.id)
-                : chapterCharacters.includes(char.id);
-                
-              return (
-                <button
-                  key={char.id}
-                  onClick={() => toggleCharacter(char.id)}
-                  disabled={!isScene}
-                  className={cn(
-                    "px-2.5 py-1 rounded-full text-xs font-medium transition-colors border",
-                    isActive 
-                      ? "bg-stone-800 text-stone-100 border-stone-800" 
-                      : "bg-white text-stone-500 border-stone-200 hover:border-stone-300",
-                    !isScene && "cursor-default opacity-80"
-                  )}
-                >
-                  {char.name}
-                </button>
-              );
-            })}
-          </div>
+          {!state.disguiseMode && (
+            <div className="mb-12 flex flex-wrap gap-2 items-center">
+              <span className="text-xs font-medium text-stone-400 uppercase tracking-wider mr-2">
+                {isScene ? 'Characters in Scene:' : 'Characters in Chapter:'}
+              </span>
+              
+              {characters.map(char => {
+                const isActive = isScene 
+                  ? (activeDocument as any).characterIds.includes(char.id)
+                  : chapterCharacters.includes(char.id);
+                  
+                return (
+                  <button
+                    key={char.id}
+                    onClick={() => toggleCharacter(char.id)}
+                    disabled={!isScene}
+                    className={cn(
+                      "px-2.5 py-1 rounded-full text-xs font-medium transition-colors border",
+                      isActive 
+                        ? "bg-stone-800 text-stone-100 border-stone-800" 
+                        : "bg-white text-stone-500 border-stone-200 hover:border-stone-300",
+                      !isScene && "cursor-default opacity-80"
+                    )}
+                  >
+                    {char.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Chapter Character Summary */}
-          {!isScene && chapterCharacters.length > 0 && (
+          {!isScene && chapterCharacters.length > 0 && !state.disguiseMode && (
             <div className="mb-12 space-y-6">
               <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider border-b border-stone-100 pb-2">Character Appearances</h3>
               {chapterCharacters.map(charId => {
@@ -416,10 +423,10 @@ export function EditorPanel() {
           )}
 
           {/* Blocks */}
-          <div className="space-y-6">
+          <div className={cn("space-y-6", state.disguiseMode && "space-y-4")}>
             {blocks.map((block, index) => {
               const prevBlock = index > 0 ? blocks[index - 1] : null;
-              const canMergeUp = block.type === 'text' && prevBlock && prevBlock.type === 'text';
+              const canMergeUp = block.type === 'text' && prevBlock && prevBlock.type === 'text' && !state.disguiseMode;
 
               return (
               <div key={block.id} id={`block-${block.id}`} className="group relative flex flex-col transition-colors duration-500">
@@ -441,9 +448,10 @@ export function EditorPanel() {
                     {/* Block Content */}
                     <div className={cn(
                       "w-full rounded-lg transition-colors",
-                      block.type === 'lens' ? cn("p-4 border-2", LENS_COLORS[block.color as keyof typeof LENS_COLORS] || LENS_COLORS.red) : ""
+                      block.type === 'lens' && !state.disguiseMode ? cn("p-4 border-2", LENS_COLORS[block.color as keyof typeof LENS_COLORS] || LENS_COLORS.red) : "",
+                      state.disguiseMode && "rounded-none"
                     )}>
-                      {block.type === 'lens' && (
+                      {block.type === 'lens' && !state.disguiseMode && (
                         <div className="flex justify-between items-center mb-2">
                           <div className="flex space-x-1">
                             {Object.keys(LENS_COLORS).map(color => (
@@ -499,12 +507,12 @@ export function EditorPanel() {
                         placeholder={block.type === 'lens' ? (block.color === 'black' ? "Hidden content..." : "Enter lens content...") : "Start writing..."}
                         className={cn(
                           "w-full outline-none bg-transparent p-0",
-                          block.type === 'lens' ? "text-sm font-medium leading-relaxed" : "text-lg leading-relaxed text-stone-800 font-serif",
-                          block.type === 'lens' && block.color === 'black' ? "text-transparent focus:text-stone-100 placeholder:text-stone-700 focus:placeholder:text-stone-500 selection:bg-stone-700 selection:text-stone-100" : ""
+                          state.disguiseMode ? "font-mono text-base leading-snug text-black" : (block.type === 'lens' ? "text-sm font-medium leading-relaxed" : "text-lg leading-relaxed text-stone-800 font-serif"),
+                          block.type === 'lens' && block.color === 'black' && !state.disguiseMode ? "text-transparent focus:text-stone-100 placeholder:text-stone-700 focus:placeholder:text-stone-500 selection:bg-stone-700 selection:text-stone-100" : ""
                         )}
                       />
                       
-                      {block.type === 'lens' && block.linkedLensIds && block.linkedLensIds.length > 0 && (
+                      {block.type === 'lens' && block.linkedLensIds && block.linkedLensIds.length > 0 && !state.disguiseMode && (
                         <div className="mt-3 pt-3 border-t border-black/10 flex flex-wrap gap-2">
                           {block.linkedLensIds.map(linkedId => {
                             const linkedLens = state.blocks.find(b => b.id === linkedId);
@@ -553,33 +561,35 @@ export function EditorPanel() {
                     </div>
 
                     {/* Block Actions (Hover) */}
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 px-2 absolute top-full left-0 z-10 bg-white shadow-sm rounded-md border border-stone-200 py-0.5 mt-1">
-                      <button 
-                        onClick={() => handleAddBlock('text', block.id)}
-                        className="flex items-center px-2 py-0.5 text-[10px] font-medium text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded transition-colors"
-                        title="Add Text Block Below"
-                      >
-                        <AlignLeft size={12} className="mr-1" /> Add Text
-                      </button>
-                      <button 
-                        onClick={() => handleAddBlock('lens', block.id)}
-                        className="flex items-center px-2 py-0.5 text-[10px] font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
-                        title="Add Color Lens Below"
-                      >
-                        <Highlighter size={12} className="mr-1" /> Add Lens
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteBlock(block.id)}
-                        className="p-1 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                        title="Delete Block"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
+                    {!state.disguiseMode && (
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 px-2 absolute top-full left-0 z-10 bg-white shadow-sm rounded-md border border-stone-200 py-0.5 mt-1">
+                        <button 
+                          onClick={() => handleAddBlock('text', block.id)}
+                          className="flex items-center px-2 py-0.5 text-[10px] font-medium text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded transition-colors"
+                          title="Add Text Block Below"
+                        >
+                          <AlignLeft size={12} className="mr-1" /> Add Text
+                        </button>
+                        <button 
+                          onClick={() => handleAddBlock('lens', block.id)}
+                          className="flex items-center px-2 py-0.5 text-[10px] font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
+                          title="Add Color Lens Below"
+                        >
+                          <Highlighter size={12} className="mr-1" /> Add Lens
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteBlock(block.id)}
+                          className="p-1 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                          title="Delete Block"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Right Side Actions for Text Blocks */}
-                  {block.type === 'text' && (
+                  {block.type === 'text' && !state.disguiseMode && (
                     <div className={cn(
                       "flex flex-col items-center space-y-2 opacity-0 group-hover:opacity-100 transition-opacity pt-2 w-8 shrink-0"
                     )}>
@@ -604,7 +614,7 @@ export function EditorPanel() {
               );
             })}
 
-            {blocks.length === 0 && (
+            {blocks.length === 0 && !state.disguiseMode && (
               <div className="flex space-x-4 mt-8">
                 <button 
                   onClick={() => handleAddBlock('text')}
@@ -630,7 +640,7 @@ export function EditorPanel() {
       </div>
       
       {/* TOC Sidebar */}
-      {tocSections.length > 0 && isTocOpen && (
+      {tocSections.length > 0 && isTocOpen && !state.disguiseMode && (
         <div className="w-64 border-l border-stone-200 bg-stone-50/50 flex-col hidden lg:flex shrink-0">
           <div className="p-4 border-b border-stone-200 flex items-center bg-white">
             <List size={16} className="text-stone-400 mr-2" />

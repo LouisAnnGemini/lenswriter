@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from '../store/StoreContext';
-import { Edit3, Layers, Users, Maximize2, Minimize2, Menu, ChevronLeft, FileText, MessageSquare, MessageSquareOff } from 'lucide-react';
+import { Edit3, Layers, Users, Maximize2, Minimize2, Menu, ChevronLeft, FileText, MessageSquare, MessageSquareOff, Eye } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => void }) {
@@ -71,6 +71,13 @@ export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => v
               {state.showDescriptions ? <MessageSquare size={18} /> : <MessageSquareOff size={18} />}
             </button>
           )}
+          <button
+            onClick={() => dispatch({ type: 'TOGGLE_DISGUISE_MODE' })}
+            className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md transition-colors hidden md:block"
+            title="Enter Disguise Mode"
+          >
+            <Eye size={18} />
+          </button>
           <button
             onClick={() => dispatch({ type: 'TOGGLE_FOCUS_MODE' })}
             className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md transition-colors hidden md:block"

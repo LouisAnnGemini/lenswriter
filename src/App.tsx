@@ -8,19 +8,30 @@ import { LensesTab } from './components/LensesTab';
 import { CharactersTab } from './components/CharactersTab';
 import { ArchitectureTab } from './components/ArchitectureTab';
 import { CompileTab } from './components/CompileTab';
-import { Minimize2, MessageSquare, MessageSquareOff } from 'lucide-react';
+import { Minimize2, MessageSquare, MessageSquareOff, EyeOff, Eye } from 'lucide-react';
 import { cn } from './lib/utils';
 
 function MainContent({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, setMobileOpen: (open: boolean) => void }) {
   const { state, dispatch } = useStore();
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && state.disguiseMode) {
+        e.preventDefault();
+        dispatch({ type: 'TOGGLE_DISGUISE_MODE' });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [state.disguiseMode, dispatch]);
+
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden bg-white relative">
-      <TopNav setMobileOpen={setMobileOpen} />
+      {!state.disguiseMode && <TopNav setMobileOpen={setMobileOpen} />}
       <div className="flex-1 flex overflow-hidden">
         {state.activeTab === 'writing' && (
           <>
-            <OutlinePanel setMobileOpen={setMobileOpen} />
+            {!state.disguiseMode && <OutlinePanel setMobileOpen={setMobileOpen} />}
             <EditorPanel />
           </>
         )}
@@ -30,8 +41,29 @@ function MainContent({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, setMo
         {state.activeTab === 'compile' && <CompileTab />}
       </div>
       
-      {state.focusMode && (
-        <div className="fixed top-6 right-6 flex items-center space-x-2 z-50">
+      {(state.focusMode || state.disguiseMode) && (
+        <div className={cn(
+          "fixed top-6 right-6 flex items-center space-x-2 z-50 transition-opacity duration-300",
+          state.disguiseMode ? "opacity-0 hover:opacity-100" : "opacity-100"
+        )}>
+          {state.disguiseMode ? (
+            <button
+              onClick={() => dispatch({ type: 'TOGGLE_DISGUISE_MODE' })}
+              className="p-2 bg-white text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md shadow-sm border border-stone-200 transition-colors"
+              title="Exit Disguise Mode"
+            >
+              <EyeOff size={20} />
+            </button>
+          ) : (
+            <button
+              onClick={() => dispatch({ type: 'TOGGLE_DISGUISE_MODE' })}
+              className="p-2 bg-white text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md shadow-sm border border-stone-200 transition-colors"
+              title="Enter Disguise Mode"
+            >
+              <Eye size={20} />
+            </button>
+          )}
+          
           <button
             onClick={() => dispatch({ type: 'TOGGLE_SHOW_DESCRIPTIONS' })}
             className={cn(
@@ -55,15 +87,22 @@ function MainContent({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, setMo
   );
 }
 
-export default function App() {
+function Layout() {
+  const { state } = useStore();
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
   return (
+    <div className="flex h-screen w-full overflow-hidden font-sans text-stone-900 bg-stone-900 selection:bg-emerald-200 selection:text-emerald-900">
+      {!state.disguiseMode && <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />}
+      <MainContent mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+    </div>
+  );
+}
+
+export default function App() {
+  return (
     <StoreProvider>
-      <div className="flex h-screen w-full overflow-hidden font-sans text-stone-900 bg-stone-900 selection:bg-emerald-200 selection:text-emerald-900">
-        <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
-        <MainContent mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
-      </div>
+      <Layout />
     </StoreProvider>
   );
 }
