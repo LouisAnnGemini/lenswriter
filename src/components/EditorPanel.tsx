@@ -416,7 +416,7 @@ export function EditorPanel() {
           )}
 
           {/* Blocks */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             {blocks.map((block, index) => {
               const prevBlock = index > 0 ? blocks[index - 1] : null;
               const canMergeUp = block.type === 'text' && prevBlock && prevBlock.type === 'text';
@@ -543,7 +543,7 @@ export function EditorPanel() {
                     </div>
 
                     {/* Block Actions (Hover) */}
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 px-2 absolute top-full left-0 z-10 bg-white/90 backdrop-blur-sm shadow-sm rounded-md border border-stone-200 py-0.5 mt-1">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 px-2 absolute top-full left-0 z-10 bg-white shadow-sm rounded-md border border-stone-200 py-0.5 mt-1">
                       <button 
                         onClick={() => handleAddBlock('text', block.id)}
                         className="flex items-center px-2 py-0.5 text-[10px] font-medium text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded transition-colors"
