@@ -16,10 +16,22 @@ export function LensesTab() {
   const { state, dispatch } = useStore();
   const activeWorkId = state.activeWorkId;
   const activeWork = state.works.find(w => w.id === activeWorkId);
-  const [selectedLensId, setSelectedLensId] = useState<string | null>(null);
+  const selectedLensId = state.activeLensId;
   const [filterColor, setFilterColor] = useState<string | 'all'>('all');
   const [filterChapterId, setFilterChapterId] = useState<string | 'all'>('all');
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (selectedLensId) {
+      // Scroll to the selected lens card
+      setTimeout(() => {
+        const el = document.getElementById(`lens-card-${selectedLensId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  }, [selectedLensId]);
 
   useEffect(() => {
     if (descriptionRef.current) {
@@ -165,7 +177,7 @@ export function LensesTab() {
                   LENS_COLORS[lens.color as keyof typeof LENS_COLORS] || LENS_COLORS.red,
                   selectedLensId === lens.id && "ring-2 ring-emerald-500 ring-offset-2"
                 )}
-                onClick={() => setSelectedLensId(lens.id)}
+                onClick={() => dispatch({ type: 'SET_ACTIVE_LENS', payload: lens.id })}
               >
                 <div className="flex justify-between items-start mb-3 pb-2 border-b border-black/10">
                   <div className="flex items-center text-xs font-medium opacity-60">
@@ -237,7 +249,7 @@ export function LensesTab() {
                   </div>
                   <button 
                     className="opacity-0 group-hover:opacity-100 px-2.5 py-1 bg-black/5 hover:bg-black/10 rounded-md text-xs font-bold transition-all"
-                    onClick={(e) => { e.stopPropagation(); setSelectedLensId(lens.id); }}
+                    onClick={(e) => { e.stopPropagation(); dispatch({ type: 'SET_ACTIVE_LENS', payload: lens.id }); }}
                   >
                     Details
                   </button>
@@ -271,7 +283,7 @@ export function LensesTab() {
                     Lens Details
                   </h3>
                   <button 
-                    onClick={() => setSelectedLensId(null)}
+                    onClick={() => dispatch({ type: 'SET_ACTIVE_LENS', payload: null })}
                     className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-200 rounded-md transition-colors"
                   >
                     <X size={16} />

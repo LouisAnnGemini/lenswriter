@@ -35,6 +35,7 @@ export type StoreState = {
   activeWorkId: string | null;
   activeDocumentId: string | null;
   activeTab: 'writing' | 'lenses' | 'characters' | 'architecture' | 'compile';
+  activeLensId: string | null;
   focusMode: boolean;
   showDescriptions: boolean;
 };
@@ -47,6 +48,7 @@ type Action =
   | { type: 'SET_ACTIVE_WORK'; payload: string }
   | { type: 'SET_ACTIVE_DOCUMENT'; payload: string | null }
   | { type: 'SET_ACTIVE_TAB'; payload: 'writing' | 'lenses' | 'characters' | 'architecture' | 'compile' }
+  | { type: 'SET_ACTIVE_LENS'; payload: string | null }
   | { type: 'TOGGLE_FOCUS_MODE' }
   | { type: 'TOGGLE_SHOW_DESCRIPTIONS' }
   | { type: 'ADD_CHAPTER'; payload: { workId: string; title: string } }
@@ -117,6 +119,7 @@ const initialState: StoreState = {
   activeWorkId: initialWorkId,
   activeDocumentId: initialSceneId,
   activeTab: 'writing',
+  activeLensId: null,
   focusMode: false,
   showDescriptions: true,
 };
@@ -193,6 +196,8 @@ function storeReducer(state: StoreState, action: Action): StoreState {
       return { ...state, activeDocumentId: action.payload };
     case 'SET_ACTIVE_TAB':
       return { ...state, activeTab: action.payload };
+    case 'SET_ACTIVE_LENS':
+      return { ...state, activeLensId: action.payload };
     case 'TOGGLE_FOCUS_MODE':
       return { ...state, focusMode: !state.focusMode };
     case 'TOGGLE_SHOW_DESCRIPTIONS':

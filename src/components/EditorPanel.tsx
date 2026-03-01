@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useStore } from '../store/StoreContext';
-import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check, ChevronLeft, ArrowUpToLine, MessageSquare, CheckCircle2, Circle, List, PanelRightClose, PanelRightOpen, MessageSquareOff, Search } from 'lucide-react';
+import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check, ChevronLeft, ArrowUpToLine, MessageSquare, CheckCircle2, Circle, List, PanelRightClose, PanelRightOpen, MessageSquareOff, Search, ExternalLink } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { FindReplaceBar } from './FindReplaceBar';
 
@@ -470,6 +470,16 @@ export function EditorPanel() {
                                 {block.linkedLensIds.length} Linked
                               </div>
                             )}
+                            <button 
+                              onClick={() => {
+                                dispatch({ type: 'SET_ACTIVE_LENS', payload: block.id });
+                                dispatch({ type: 'SET_ACTIVE_TAB', payload: 'lenses' });
+                              }}
+                              className="p-1 hover:bg-black/5 rounded transition-colors"
+                              title="Go to Lens in Lenses Tab"
+                            >
+                              <ExternalLink size={14} />
+                            </button>
                             <button 
                               onClick={() => handleRemoveLens(block.id)}
                               className="p-1 hover:bg-black/5 rounded transition-colors"
