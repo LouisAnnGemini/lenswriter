@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useStore } from '../store/StoreContext';
-import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check, ChevronLeft, ArrowUpToLine, MessageSquare, CheckCircle2, Circle, List, PanelRightClose, PanelRightOpen, MessageSquareOff } from 'lucide-react';
+import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check, ChevronLeft, ArrowUpToLine, MessageSquare, CheckCircle2, Circle, List, PanelRightClose, PanelRightOpen, MessageSquareOff, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { FindReplaceBar } from './FindReplaceBar';
 
 const LENS_COLORS = {
   red: 'bg-red-50 border-red-200 text-red-900',
@@ -12,7 +13,7 @@ const LENS_COLORS = {
   black: 'bg-stone-900 border-stone-700 text-stone-100',
 };
 
-const AutoResizeTextarea = ({ value, onChange, className, placeholder, scrollContainerRef }: any) => {
+const AutoResizeTextarea = ({ value, onChange, className, placeholder, scrollContainerRef, searchTerm }: any) => {
   const ref = useRef<HTMLTextAreaElement>(null);
   
   const adjustHeight = React.useCallback(() => {
@@ -66,15 +67,36 @@ const AutoResizeTextarea = ({ value, onChange, className, placeholder, scrollCon
     };
   }, [adjustHeight]);
 
+  const renderHighlights = () => {
+    if (!searchTerm || !value) return null;
+    
+    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = value.split(regex);
+    
+    return (
+      <div 
+        className={cn(className, "absolute inset-0 pointer-events-none whitespace-pre-wrap break-words text-transparent bg-transparent z-0")} 
+        aria-hidden="true"
+      >
+        {parts.map((part: string, i: number) => 
+          i % 2 === 1 ? <span key={i} className="bg-yellow-200/50 text-transparent">{part}</span> : <span key={i}>{part}</span>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <textarea
-      ref={ref}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      className={cn("overflow-hidden resize-none", className)}
-      rows={1}
-    />
+    <div className="relative w-full group">
+      {renderHighlights()}
+      <textarea
+        ref={ref}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={cn("overflow-hidden resize-none relative z-10 bg-transparent w-full", className)}
+        rows={1}
+      />
+    </div>
   );
 };
 
@@ -82,11 +104,24 @@ export function EditorPanel() {
   const { state, dispatch } = useStore();
   const [copied, setCopied] = useState(false);
   const [isTocOpen, setIsTocOpen] = useState(true);
+  const [showFindReplace, setShowFindReplace] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const showDescriptions = state.showDescriptions;
   const activeDocId = state.activeDocumentId;
   const activeWorkId = state.activeWorkId;
   const isFocusMode = state.focusMode;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        setShowFindReplace(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const activeDocument = state.scenes.find(s => s.id === activeDocId) || state.chapters.find(c => c.id === activeDocId);
   const isScene = state.scenes.some(s => s.id === activeDocId);
@@ -211,8 +246,20 @@ export function EditorPanel() {
       "flex-1 flex bg-white overflow-hidden relative transition-all duration-300",
       !activeDocId ? "hidden md:flex" : "flex"
     )}>
-      <div 
-        ref={scrollContainerRef}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        {showFindReplace && (
+          <div className="border-b border-stone-200 z-20 bg-stone-50">
+            <FindReplaceBar 
+              onClose={() => {
+                setShowFindReplace(false);
+                setSearchTerm('');
+              }} 
+              onSearchChange={setSearchTerm} 
+            />
+          </div>
+        )}
+        <div 
+          ref={scrollContainerRef}
         className={cn(
         "flex-1 overflow-y-auto pb-32 md:pb-12 transition-all duration-300",
         isFocusMode 
@@ -238,6 +285,13 @@ export function EditorPanel() {
               placeholder="Untitled..."
             />
             <div className="flex items-center space-x-2 ml-4">
+              <button
+                onClick={() => setShowFindReplace(!showFindReplace)}
+                className={cn("p-2 rounded-md transition-colors", showFindReplace ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100" : "text-stone-400 hover:text-stone-600 hover:bg-stone-100")}
+                title="Find and Replace (Ctrl+F)"
+              >
+                <Search size={20} />
+              </button>
               {tocSections.length > 0 && (
                 <button
                   onClick={() => setIsTocOpen(!isTocOpen)}
@@ -430,10 +484,11 @@ export function EditorPanel() {
                       <AutoResizeTextarea
                         scrollContainerRef={scrollContainerRef}
                         value={block.content}
+                        searchTerm={searchTerm}
                         onChange={(e: any) => handleBlockChange(block.id, { content: e.target.value })}
                         placeholder={block.type === 'lens' ? (block.color === 'black' ? "Hidden content..." : "Enter lens content...") : "Start writing..."}
                         className={cn(
-                          "w-full outline-none bg-transparent",
+                          "w-full outline-none bg-transparent p-0",
                           block.type === 'lens' ? "text-sm font-medium leading-relaxed" : "text-lg leading-relaxed text-stone-800 font-serif",
                           block.type === 'lens' && block.color === 'black' ? "text-transparent focus:text-stone-100 placeholder:text-stone-700 focus:placeholder:text-stone-500 selection:bg-stone-700 selection:text-stone-100" : ""
                         )}
@@ -561,6 +616,7 @@ export function EditorPanel() {
           
           <div className="h-64" /> {/* Bottom padding */}
         </div>
+      </div>
       </div>
       
       {/* TOC Sidebar */}

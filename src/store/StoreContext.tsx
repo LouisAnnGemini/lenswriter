@@ -81,7 +81,8 @@ type Action =
   | { type: 'UPDATE_WHITEBOARD_EDGE'; payload: { id: string; label: string } }
   | { type: 'DELETE_WHITEBOARD_EDGE'; payload: string }
   | { type: 'SET_WHITEBOARD_NODES'; payload: WhiteboardNode[] }
-  | { type: 'SET_WHITEBOARD_EDGES'; payload: WhiteboardEdge[] };
+  | { type: 'SET_WHITEBOARD_EDGES'; payload: WhiteboardEdge[] }
+  | { type: 'BULK_UPDATE_BLOCKS'; payload: { id: string; content: string }[] };
 
 const initialWorkId = uuidv4();
 const initialChapterId = uuidv4();
@@ -475,6 +476,20 @@ function storeReducer(state: StoreState, action: Action): StoreState {
       return {
         ...state,
         blocks: state.blocks.map(b => b.id === id ? { ...b, ...updates } : b)
+      };
+    }
+    case 'BULK_UPDATE_BLOCKS': {
+      const updates = action.payload;
+      const updateMap = new Map(updates.map(u => [u.id, u.content]));
+      
+      return {
+        ...state,
+        blocks: state.blocks.map(b => {
+          if (updateMap.has(b.id)) {
+            return { ...b, content: updateMap.get(b.id)! };
+          }
+          return b;
+        })
       };
     }
     case 'REMOVE_LENS': {
