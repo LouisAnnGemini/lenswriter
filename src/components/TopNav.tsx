@@ -59,6 +59,13 @@ export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => v
         </div>
 
         <div className="flex items-center space-x-2">
+          <button
+            onClick={() => dispatch({ type: 'TOGGLE_DISGUISE_MODE' })}
+            className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md transition-colors hidden md:block"
+            title="Enter Disguise Mode"
+          >
+            <Eye size={18} />
+          </button>
           {state.activeTab === 'writing' && (
             <button
               onClick={() => dispatch({ type: 'TOGGLE_SHOW_DESCRIPTIONS' })}
@@ -71,13 +78,6 @@ export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => v
               {state.showDescriptions ? <MessageSquare size={18} /> : <MessageSquareOff size={18} />}
             </button>
           )}
-          <button
-            onClick={() => dispatch({ type: 'TOGGLE_DISGUISE_MODE' })}
-            className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md transition-colors hidden md:block"
-            title="Enter Disguise Mode"
-          >
-            <Eye size={18} />
-          </button>
           <button
             onClick={() => dispatch({ type: 'TOGGLE_FOCUS_MODE' })}
             className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md transition-colors hidden md:block"

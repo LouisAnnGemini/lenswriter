@@ -13,7 +13,7 @@ const LENS_COLORS = {
   black: 'bg-stone-900 border-stone-700 text-stone-100',
 };
 
-const AutoResizeTextarea = ({ value, onChange, className, placeholder, scrollContainerRef, searchTerm }: any) => {
+const AutoResizeTextarea = ({ value, onChange, className, placeholder, scrollContainerRef, searchTerm, ...props }: any) => {
   const ref = useRef<HTMLTextAreaElement>(null);
   
   const adjustHeight = React.useCallback(() => {
@@ -95,6 +95,7 @@ const AutoResizeTextarea = ({ value, onChange, className, placeholder, scrollCon
         placeholder={placeholder}
         className={cn("overflow-hidden resize-none relative z-10 bg-transparent w-full", className)}
         rows={1}
+        {...props}
       />
     </div>
   );
@@ -241,6 +242,26 @@ export function EditorPanel() {
     }
   }
 
+  // Global Undo/Redo Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Undo: Ctrl+Z
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        dispatch({ type: 'UNDO' });
+      }
+      // Redo: Ctrl+Shift+Z or Ctrl+Y
+      if (((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') || 
+          ((e.ctrlKey || e.metaKey) && e.key === 'y')) {
+        e.preventDefault();
+        dispatch({ type: 'REDO' });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [dispatch]);
+
   return (
     <div className={cn(
       "flex-1 flex bg-white overflow-hidden relative transition-all duration-300",
@@ -297,13 +318,13 @@ export function EditorPanel() {
               >
                 <Search size={20} />
               </button>
-              {tocSections.length > 0 && !state.disguiseMode && (
+              {!isTocOpen && tocSections.length > 0 && !state.disguiseMode && (
                 <button
-                  onClick={() => setIsTocOpen(!isTocOpen)}
-                  className={cn("p-2 rounded-md transition-colors hidden lg:flex", isTocOpen ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100" : "text-stone-400 hover:text-stone-600 hover:bg-stone-100")}
-                  title={isTocOpen ? "Close Directory" : "Open Directory"}
+                  onClick={() => setIsTocOpen(true)}
+                  className="p-2 rounded-md transition-colors hidden lg:flex text-stone-400 hover:text-stone-600 hover:bg-stone-100"
+                  title="Open Directory"
                 >
-                  {isTocOpen ? <PanelRightClose size={20} /> : <PanelRightOpen size={20} />}
+                  <PanelRightOpen size={20} />
                 </button>
               )}
               {isScene ? (
@@ -504,6 +525,19 @@ export function EditorPanel() {
                         value={block.content}
                         searchTerm={searchTerm}
                         onChange={(e: any) => handleBlockChange(block.id, { content: e.target.value })}
+                        onKeyDown={(e: React.KeyboardEvent) => {
+                          if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                            e.preventDefault();
+                            const newType = block.type === 'text' ? 'lens' : 'text';
+                            dispatch({ 
+                              type: 'UPDATE_BLOCK', 
+                              payload: { 
+                                id: block.id, 
+                                type: newType,
+                              } 
+                            });
+                          }
+                        }}
                         placeholder={block.type === 'lens' ? (block.color === 'black' ? "Hidden content..." : "Enter lens content...") : "Start writing..."}
                         className={cn(
                           "w-full outline-none bg-transparent p-0",
@@ -643,8 +677,17 @@ export function EditorPanel() {
       {tocSections.length > 0 && isTocOpen && !state.disguiseMode && (
         <div className="w-64 border-l border-stone-200 bg-stone-50/50 flex-col hidden lg:flex shrink-0">
           <div className="p-4 border-b border-stone-200 flex items-center bg-white">
-            <List size={16} className="text-stone-400 mr-2" />
-            <h3 className="font-semibold text-stone-900 text-sm uppercase tracking-wider">Block Directory</h3>
+            <button
+              onClick={() => setIsTocOpen(false)}
+              className="p-1.5 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md transition-colors mr-2"
+              title="Close Directory"
+            >
+              <PanelRightClose size={16} />
+            </button>
+            <div className="flex items-center">
+              <List size={16} className="text-stone-400 mr-2" />
+              <h3 className="font-semibold text-stone-900 text-sm uppercase tracking-wider">Block Directory</h3>
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
             {tocSections.map((section, idx) => (

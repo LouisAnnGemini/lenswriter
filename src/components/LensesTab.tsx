@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/StoreContext';
-import { Layers, MapPin, Edit2, Link as LinkIcon, X, Plus, Lock, Filter, ExternalLink } from 'lucide-react';
+import { Layers, MapPin, Edit2, Link as LinkIcon, X, Plus, Lock, Filter, ExternalLink, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const LENS_COLORS = {
@@ -19,6 +19,7 @@ export function LensesTab() {
   const selectedLensId = state.activeLensId;
   const [filterColor, setFilterColor] = useState<string | 'all'>('all');
   const [filterChapterId, setFilterChapterId] = useState<string | 'all'>('all');
+  const [privateSearchTerm, setPrivateSearchTerm] = useState('');
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -65,6 +66,11 @@ export function LensesTab() {
       
       return false;
     });
+  }
+
+  if (privateSearchTerm) {
+    const term = privateSearchTerm.toLowerCase();
+    lenses = lenses.filter(l => l.notes && l.notes.toLowerCase().includes(term));
   }
 
   const getLensLocation = (docId: string) => {
@@ -130,6 +136,23 @@ export function LensesTab() {
               />
             </div>
             <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4 w-full md:w-auto">
+              {/* Private Note Search */}
+              <div className="flex items-center space-x-2 bg-white border border-stone-200 rounded-lg px-3 py-2 md:py-1.5 shadow-sm w-full md:w-auto">
+                <Search size={14} className="text-stone-400 shrink-0" />
+                <input
+                  type="text"
+                  value={privateSearchTerm}
+                  onChange={(e) => setPrivateSearchTerm(e.target.value)}
+                  placeholder="Search private notes..."
+                  className="text-xs font-medium bg-transparent border-none outline-none text-stone-600 w-full md:w-32 placeholder:text-stone-400"
+                />
+                {privateSearchTerm && (
+                  <button onClick={() => setPrivateSearchTerm('')} className="text-stone-400 hover:text-stone-600">
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+
               {/* Chapter Filter */}
               <div className="flex items-center space-x-2 bg-white border border-stone-200 rounded-lg px-3 py-2 md:py-1.5 shadow-sm w-full md:w-auto">
                 <Filter size={14} className="text-stone-400 shrink-0" />

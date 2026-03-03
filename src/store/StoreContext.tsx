@@ -39,9 +39,13 @@ export type StoreState = {
   focusMode: boolean;
   disguiseMode: boolean;
   showDescriptions: boolean;
+  past?: StoreState[];
+  future?: StoreState[];
 };
 
 type Action =
+  | { type: 'UNDO' }
+  | { type: 'REDO' }
   | { type: 'ADD_WORK'; payload: { title: string } }
   | { type: 'UPDATE_WORK'; payload: { id: string; title?: string; lensesDescription?: string; icon?: string } }
   | { type: 'DELETE_WORK'; payload: string }
@@ -63,7 +67,7 @@ type Action =
   | { type: 'TOGGLE_SCENE_CHARACTER'; payload: { sceneId: string; characterId: string } }
   | { type: 'UPDATE_SCENE_CHARACTER_NOTE'; payload: { sceneId: string; characterId: string; note: string } }
   | { type: 'ADD_BLOCK'; payload: { documentId: string; type: 'text' | 'lens'; afterBlockId?: string } }
-  | { type: 'UPDATE_BLOCK'; payload: { id: string; content?: string; color?: string; notes?: string; linkedLensIds?: string[]; description?: string; completed?: boolean } }
+  | { type: 'UPDATE_BLOCK'; payload: { id: string; content?: string; type?: 'text' | 'lens'; color?: string; notes?: string; linkedLensIds?: string[]; description?: string; completed?: boolean } }
   | { type: 'REMOVE_LENS'; payload: string }
   | { type: 'DELETE_BLOCK'; payload: string }
   | { type: 'ADD_CHARACTER'; payload: { workId: string; name: string } }
@@ -127,7 +131,7 @@ const initialState: StoreState = {
   showDescriptions: true,
 };
 
-function storeReducer(state: StoreState, action: Action): StoreState {
+function innerReducer(state: StoreState, action: Action): StoreState {
   switch (action.type) {
     case 'ADD_WORK': {
       const newWork: Work = { id: uuidv4(), title: action.payload.title, createdAt: Date.now(), order: state.works.length };
@@ -457,6 +461,14 @@ function storeReducer(state: StoreState, action: Action): StoreState {
     case 'UPDATE_BLOCK': {
       const { id, ...updates } = action.payload;
       
+      const applyUpdates = (block: Block) => {
+        const newBlock = { ...block, ...updates };
+        if (updates.type === 'lens' && block.type === 'text' && !updates.color && !block.color) {
+            newBlock.color = 'red';
+        }
+        return newBlock;
+      };
+
       if ('linkedLensIds' in updates) {
         const oldBlock = state.blocks.find(b => b.id === id);
         if (oldBlock) {
@@ -470,7 +482,7 @@ function storeReducer(state: StoreState, action: Action): StoreState {
             ...state,
             blocks: state.blocks.map(b => {
               if (b.id === id) {
-                return { ...b, ...updates };
+                return applyUpdates(b);
               }
               if (addedLinks.includes(b.id)) {
                 const currentLinks = b.linkedLensIds || [];
@@ -492,7 +504,7 @@ function storeReducer(state: StoreState, action: Action): StoreState {
 
       return {
         ...state,
-        blocks: state.blocks.map(b => b.id === id ? { ...b, ...updates } : b)
+        blocks: state.blocks.map(b => b.id === id ? applyUpdates(b) : b)
       };
     }
     case 'BULK_UPDATE_BLOCKS': {
@@ -663,6 +675,65 @@ function storeReducer(state: StoreState, action: Action): StoreState {
     default:
       return state;
   }
+}
+
+function storeReducer(state: StoreState, action: Action): StoreState {
+  if (action.type === 'UNDO') {
+    const past = state.past || [];
+    if (past.length === 0) return state;
+
+    const previous = past[past.length - 1];
+    const newPast = past.slice(0, past.length - 1);
+    
+    return {
+      ...previous,
+      past: newPast,
+      future: [state, ...(state.future || [])],
+    };
+  }
+
+  if (action.type === 'REDO') {
+    const future = state.future || [];
+    if (future.length === 0) return state;
+
+    const next = future[0];
+    const newFuture = future.slice(1);
+
+    return {
+      ...next,
+      past: [...(state.past || []), state],
+      future: newFuture,
+    };
+  }
+
+  const newState = innerReducer(state, action);
+
+  if (newState === state) return state;
+
+  const isEphemeralAction = 
+    action.type === 'SET_ACTIVE_TAB' || 
+    action.type === 'SET_ACTIVE_DOCUMENT' ||
+    action.type === 'SET_ACTIVE_WORK' ||
+    action.type === 'SET_ACTIVE_LENS' ||
+    action.type === 'TOGGLE_FOCUS_MODE' ||
+    action.type === 'TOGGLE_DISGUISE_MODE' ||
+    action.type === 'TOGGLE_SHOW_DESCRIPTIONS';
+
+  if (isEphemeralAction) {
+    return {
+      ...newState,
+      past: state.past,
+      future: state.future
+    };
+  }
+
+  const { past, future, ...stateWithoutHistory } = state;
+
+  return {
+    ...newState,
+    past: [...(past || []), stateWithoutHistory as StoreState],
+    future: []
+  };
 }
 
 const StoreContext = createContext<{ state: StoreState; dispatch: React.Dispatch<Action> } | undefined>(undefined);
