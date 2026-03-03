@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/StoreContext';
-import { Book, Plus, ChevronLeft, ChevronRight, Download, Upload, Trash2, Edit2, GripVertical, Check, X, Menu, Network } from 'lucide-react';
+import { Book, Plus, ChevronLeft, ChevronRight, Download, Upload, Trash2, Edit2, GripVertical, Check, X, Menu, Network, Save } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { cn } from '../lib/utils';
 import { WorkIcon } from './WorkIcon';
 import { WorkIconPicker } from './WorkIconPicker';
+import { BackupManager } from './BackupManager';
 
 export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, setMobileOpen?: (open: boolean) => void }) {
   const { state, dispatch } = useStore();
@@ -13,6 +14,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
   const [editingWorkId, setEditingWorkId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [deletingWorkId, setDeletingWorkId] = useState<string | null>(null);
+  const [showBackupManager, setShowBackupManager] = useState(false);
 
   if (state.focusMode) return null;
 
@@ -279,8 +281,19 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
               Import
               <input type="file" accept=".json" onChange={handleImport} className="hidden" />
             </label>
+            <button
+              onClick={() => setShowBackupManager(true)}
+              className="flex items-center justify-center p-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-md text-xs font-medium transition-colors"
+              title="Local Backups"
+            >
+              <Save size={14} />
+            </button>
           </div>
         </div>
+      )}
+      
+      {showBackupManager && (
+        <BackupManager onClose={() => setShowBackupManager(false)} />
       )}
     </div>
     </>
