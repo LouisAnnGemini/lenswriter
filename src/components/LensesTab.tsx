@@ -9,6 +9,7 @@ const LENS_COLORS = {
   green: 'bg-emerald-50 border-emerald-200 text-emerald-900',
   yellow: 'bg-amber-50 border-amber-200 text-amber-900',
   purple: 'bg-purple-50 border-purple-200 text-purple-900',
+  brown: 'bg-orange-200 border-orange-200 text-orange-900',
   black: 'bg-stone-900 border-stone-700 text-stone-100',
 };
 
@@ -173,7 +174,7 @@ export function LensesTab() {
                 <div 
                   className={cn(
                     "w-3 h-3 rounded-full border border-black/10 shrink-0",
-                    filterColor === 'all' ? "bg-stone-200" : (filterColor === 'black' ? "bg-stone-900" : `bg-${filterColor === 'green' ? 'emerald' : (filterColor === 'yellow' ? 'amber' : filterColor)}-400`)
+                    filterColor === 'all' ? "bg-stone-200" : (filterColor === 'black' ? "bg-stone-900" : `bg-${filterColor === 'green' ? 'emerald' : (filterColor === 'yellow' ? 'amber' : (filterColor === 'brown' ? 'orange' : filterColor))}-400`)
                   )} 
                 />
                 <select 
@@ -329,6 +330,7 @@ export function LensesTab() {
                             color === 'green' && "bg-emerald-400",
                             color === 'yellow' && "bg-amber-400",
                             color === 'purple' && "bg-purple-400",
+                            color === 'brown' && "bg-orange-400",
                             color === 'black' && "bg-stone-900",
                             lens.color === color && "ring-2 ring-offset-2 ring-stone-400"
                           )}

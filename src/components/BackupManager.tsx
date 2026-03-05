@@ -24,7 +24,7 @@ export function BackupManager({ onClose }: { onClose: () => void }) {
     }
 
     try {
-      const handle = await window.showDirectoryPicker();
+      const handle = await (window as any).showDirectoryPicker();
       setDirectoryHandle(handle);
       setStatusMessage(`Selected directory: ${handle.name}`);
       setStatusType('success');

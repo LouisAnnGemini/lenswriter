@@ -10,6 +10,7 @@ const LENS_COLORS = {
   green: 'bg-emerald-50 border-emerald-200 text-emerald-900',
   yellow: 'bg-amber-50 border-amber-200 text-amber-900',
   purple: 'bg-purple-50 border-purple-200 text-purple-900',
+  brown: 'bg-orange-200 border-orange-200 text-orange-900',
   black: 'bg-stone-900 border-stone-700 text-stone-100',
 };
 
@@ -486,9 +487,11 @@ export function EditorPanel() {
                                   color === 'green' && "bg-emerald-400",
                                   color === 'yellow' && "bg-amber-400",
                                   color === 'purple' && "bg-purple-400",
+                                  color === 'brown' && "bg-orange-400",
                                   color === 'black' && "bg-stone-900",
                                   block.color === color && "ring-2 ring-offset-1 ring-stone-400"
                                 )}
+                                title={color.charAt(0).toUpperCase() + color.slice(1)}
                               />
                             ))}
                           </div>
