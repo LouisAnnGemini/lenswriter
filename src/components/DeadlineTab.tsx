@@ -118,6 +118,7 @@ export function DeadlineTab() {
                 {todoTasks.map(task => {
                   const work = state.works.find(w => w.id === task.workId);
                   const currentWords = getChapterWordCount(task.id);
+                  const percentage = task.goalWordCount ? Math.min(100, Math.round((currentWords / task.goalWordCount) * 100)) : 0;
                   return (
                     <div
                       key={task.id}
@@ -136,8 +137,17 @@ export function DeadlineTab() {
                       </button>
                       <div className="text-xs font-medium text-stone-500 mb-1 pr-5">{work?.title}</div>
                       <div className="text-sm font-medium text-stone-800 pr-5">{task.title}</div>
-                      <div className="text-xs text-stone-500 mt-1">
-                        {currentWords} / {task.goalWordCount} words
+                      <div className="mt-2">
+                        <div className="flex justify-between items-center text-xs text-stone-500 mb-1">
+                          <span>{currentWords} / {task.goalWordCount} words</span>
+                          <span className="font-medium text-emerald-600">{percentage}%</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-stone-100 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
                   );
@@ -321,6 +331,7 @@ export function DeadlineTab() {
                       {dayTasks.map(task => {
                         const work = state.works.find(w => w.id === task.workId);
                         const currentWords = getChapterWordCount(task.id);
+                        const percentage = task.goalWordCount ? Math.min(100, Math.round((currentWords / task.goalWordCount) * 100)) : 0;
                         return (
                           <div 
                             key={task.id}
@@ -350,9 +361,23 @@ export function DeadlineTab() {
                                 <X size={12} />
                               </button>
                             </div>
-                            <div className="text-[10px] opacity-80 mt-0.5 flex justify-between">
-                              <span className="truncate max-w-[60px]">{work?.title}</span>
-                              <span>{currentWords}/{task.goalWordCount}</span>
+                            <div className="mt-1.5">
+                              <div className="text-[10px] opacity-80 flex justify-between items-center mb-1">
+                                <span className="truncate max-w-[60px]">{work?.title}</span>
+                                <span className="font-medium">{percentage}%</span>
+                              </div>
+                              <div className={cn(
+                                "h-1 w-full rounded-full overflow-hidden",
+                                task.completed ? "bg-stone-200" : "bg-emerald-200/50"
+                              )}>
+                                <div 
+                                  className={cn(
+                                    "h-full rounded-full transition-all duration-300",
+                                    task.completed ? "bg-stone-400" : "bg-emerald-500"
+                                  )}
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
                             </div>
                           </div>
                         );
