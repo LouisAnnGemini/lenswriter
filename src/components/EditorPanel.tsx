@@ -132,6 +132,26 @@ export function EditorPanel() {
   const characters = state.characters.filter(c => c.workId === activeWorkId).sort((a, b) => a.order - b.order);
   const chapters = state.chapters.filter(c => c.workId === activeWorkId).sort((a, b) => a.order - b.order);
 
+  // Global Undo/Redo Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Undo: Ctrl+Z
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        dispatch({ type: 'UNDO' });
+      }
+      // Redo: Ctrl+Shift+Z or Ctrl+Y
+      if (((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') || 
+          ((e.ctrlKey || e.metaKey) && e.key === 'y')) {
+        e.preventDefault();
+        dispatch({ type: 'REDO' });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [dispatch]);
+
   if (!activeDocument) {
     return (
       <div className="hidden md:flex flex-1 flex-col items-center justify-center text-stone-400 bg-white">
@@ -242,26 +262,6 @@ export function EditorPanel() {
       }
     }
   }
-
-  // Global Undo/Redo Shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Undo: Ctrl+Z
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        dispatch({ type: 'UNDO' });
-      }
-      // Redo: Ctrl+Shift+Z or Ctrl+Y
-      if (((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') || 
-          ((e.ctrlKey || e.metaKey) && e.key === 'y')) {
-        e.preventDefault();
-        dispatch({ type: 'REDO' });
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [dispatch]);
 
   return (
     <div className={cn(

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/StoreContext';
-import { Book, Plus, ChevronLeft, ChevronRight, Download, Upload, Trash2, Edit2, GripVertical, Check, X, Menu, Network, Save } from 'lucide-react';
+import { Book, Plus, ChevronLeft, ChevronRight, Download, Upload, Trash2, Edit2, GripVertical, Check, X, Menu, Network, Save, Clock } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { cn } from '../lib/utils';
 import { WorkIcon } from './WorkIcon';
@@ -112,18 +112,18 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
         <div className="mb-4 px-2">
           <button
             onClick={() => {
-              dispatch({ type: 'SET_ACTIVE_TAB', payload: 'architecture' });
+              dispatch({ type: 'SET_ACTIVE_TAB', payload: 'deadline' });
               setMobileOpen?.(false);
             }}
             className={cn(
               "w-full flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors",
-              state.activeTab === 'architecture'
+              state.activeTab === 'deadline'
                 ? "bg-emerald-500/10 text-emerald-400"
                 : "text-stone-400 hover:bg-stone-800 hover:text-stone-200"
             )}
           >
-            <Network size={16} className={cn("shrink-0", collapsed ? "mx-auto" : "mr-3")} />
-            {!collapsed && <span>Architecture</span>}
+            <Clock size={16} className={cn("shrink-0", collapsed ? "mx-auto" : "mr-3")} />
+            {!collapsed && <span>Deadline</span>}
           </button>
         </div>
         

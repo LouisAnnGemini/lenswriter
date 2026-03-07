@@ -3,25 +3,19 @@ import { v4 as uuidv4 } from 'uuid';
 
 export type Work = { id: string; title: string; createdAt: number; order: number; characterFields?: CharacterFieldDef[]; lensesDescription?: string; icon?: string };
 export type Character = { id: string; workId: string; name: string; description: string; order: number; customFields?: Record<string, any> };
-export type Chapter = { id: string; workId: string; title: string; order: number };
+export type Chapter = { id: string; workId: string; title: string; order: number; goalWordCount?: number; deadline?: string; completed?: boolean };
 export type Scene = { id: string; chapterId: string; title: string; order: number; characterIds: string[]; characterNotes?: Record<string, string> };
 export type Block = { id: string; documentId: string; type: 'text' | 'lens'; content: string; color?: string; order: number; notes?: string; linkedLensIds?: string[]; description?: string; completed?: boolean };
 
 export type CharacterFieldType = 'text' | 'number' | 'select' | 'multiselect';
 export type CharacterFieldDef = { id: string; name: string; type: CharacterFieldType; options: string[] };
 
-export type WhiteboardNode = {
+export type Deadline = {
   id: string;
   workId: string;
-  position: { x: number; y: number };
-  description?: string;
-};
-
-export type WhiteboardEdge = {
-  id: string;
-  source: string;
-  target: string;
-  label?: string;
+  title: string;
+  date: string;
+  completed: boolean;
 };
 
 export type StoreState = {
@@ -30,11 +24,10 @@ export type StoreState = {
   chapters: Chapter[];
   scenes: Scene[];
   blocks: Block[];
-  whiteboardNodes: WhiteboardNode[];
-  whiteboardEdges: WhiteboardEdge[];
+  deadlines: Deadline[];
   activeWorkId: string | null;
   activeDocumentId: string | null;
-  activeTab: 'writing' | 'lenses' | 'characters' | 'architecture' | 'compile';
+  activeTab: 'writing' | 'lenses' | 'characters' | 'deadline' | 'compile';
   activeLensId: string | null;
   focusMode: boolean;
   disguiseMode: boolean;
@@ -52,13 +45,14 @@ type Action =
   | { type: 'REORDER_WORKS'; payload: { startIndex: number; endIndex: number } }
   | { type: 'SET_ACTIVE_WORK'; payload: string }
   | { type: 'SET_ACTIVE_DOCUMENT'; payload: string | null }
-  | { type: 'SET_ACTIVE_TAB'; payload: 'writing' | 'lenses' | 'characters' | 'architecture' | 'compile' }
+  | { type: 'SET_ACTIVE_TAB'; payload: 'writing' | 'lenses' | 'characters' | 'deadline' | 'compile' }
   | { type: 'SET_ACTIVE_LENS'; payload: string | null }
   | { type: 'TOGGLE_FOCUS_MODE' }
   | { type: 'TOGGLE_DISGUISE_MODE' }
   | { type: 'TOGGLE_SHOW_DESCRIPTIONS' }
   | { type: 'ADD_CHAPTER'; payload: { workId: string; title: string } }
   | { type: 'UPDATE_CHAPTER'; payload: { id: string; title: string } }
+  | { type: 'UPDATE_CHAPTER_GOAL'; payload: { id: string; goalWordCount?: number; deadline?: string; completed?: boolean } }
   | { type: 'REORDER_CHAPTERS'; payload: { workId: string; startIndex: number; endIndex: number } }
   | { type: 'ADD_SCENE'; payload: { chapterId: string; title: string } }
   | { type: 'UPDATE_SCENE'; payload: { id: string; title: string } }
@@ -82,14 +76,9 @@ type Action =
   | { type: 'UPDATE_CHARACTER_FIELD'; payload: { workId: string; fieldId: string; updates: Partial<CharacterFieldDef> } }
   | { type: 'DELETE_CHARACTER_FIELD'; payload: { workId: string; fieldId: string } }
   | { type: 'UPDATE_CHARACTER_CUSTOM_FIELD'; payload: { characterId: string; fieldId: string; value: any } }
-  | { type: 'ADD_WHITEBOARD_NODE'; payload: { workId: string; position: { x: number; y: number } } }
-  | { type: 'UPDATE_WHITEBOARD_NODE'; payload: { id: string; position?: { x: number; y: number }; description?: string } }
-  | { type: 'DELETE_WHITEBOARD_NODE'; payload: string }
-  | { type: 'ADD_WHITEBOARD_EDGE'; payload: { source: string; target: string; label?: string } }
-  | { type: 'UPDATE_WHITEBOARD_EDGE'; payload: { id: string; label: string } }
-  | { type: 'DELETE_WHITEBOARD_EDGE'; payload: string }
-  | { type: 'SET_WHITEBOARD_NODES'; payload: WhiteboardNode[] }
-  | { type: 'SET_WHITEBOARD_EDGES'; payload: WhiteboardEdge[] }
+  | { type: 'ADD_DEADLINE'; payload: { workId: string; title: string; date: string } }
+  | { type: 'UPDATE_DEADLINE'; payload: { id: string; title?: string; date?: string; completed?: boolean } }
+  | { type: 'DELETE_DEADLINE'; payload: string }
   | { type: 'BULK_UPDATE_BLOCKS'; payload: { id: string; content: string }[] };
 
 const initialWorkId = uuidv4();
@@ -118,10 +107,9 @@ const initialState: StoreState = {
     { id: initialBlockId2, documentId: initialSceneId, type: 'lens', content: 'The victim held a small, silver locket tightly in their left hand. It bore the insignia of the old regime.', color: 'red', order: 1, notes: 'Crucial evidence. Connects to the mayor.', linkedLensIds: [] },
     { id: uuidv4(), documentId: initialSceneId, type: 'text', content: 'He sighed, knowing this case would be unlike any other.', order: 2 }
   ],
-  whiteboardNodes: [
-    { id: uuidv4(), workId: initialWorkId, position: { x: 100, y: 100 }, description: 'The first book in the series.' }
+  deadlines: [
+    { id: uuidv4(), workId: initialWorkId, title: 'First Draft', date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], completed: false }
   ],
-  whiteboardEdges: [],
   activeWorkId: initialWorkId,
   activeDocumentId: initialSceneId,
   activeTab: 'writing',
@@ -149,7 +137,7 @@ function innerReducer(state: StoreState, action: Action): StoreState {
       const scenesToDelete = state.scenes.filter(s => chaptersToDelete.includes(s.chapterId)).map(s => s.id);
       const docsToDelete = [...chaptersToDelete, ...scenesToDelete];
       const blocksToDelete = state.blocks.filter(b => docsToDelete.includes(b.documentId)).map(b => b.id);
-      const nodesToDelete = (state.whiteboardNodes || []).filter(n => n.workId === workId).map(n => n.id);
+      const deadlinesToDelete = (state.deadlines || []).filter(d => d.workId === workId).map(d => d.id);
 
       return {
         ...state,
@@ -163,8 +151,7 @@ function innerReducer(state: StoreState, action: Action): StoreState {
           }
           return b;
         }),
-        whiteboardNodes: (state.whiteboardNodes || []).filter(n => n.workId !== workId),
-        whiteboardEdges: (state.whiteboardEdges || []).filter(e => !nodesToDelete.includes(e.source) && !nodesToDelete.includes(e.target)),
+        deadlines: (state.deadlines || []).filter(d => d.workId !== workId),
         activeWorkId: state.activeWorkId === workId ? null : state.activeWorkId,
         activeDocumentId: docsToDelete.includes(state.activeDocumentId!) ? null : state.activeDocumentId
       };
@@ -257,6 +244,16 @@ function innerReducer(state: StoreState, action: Action): StoreState {
     }
     case 'UPDATE_CHAPTER':
       return { ...state, chapters: state.chapters.map(c => c.id === action.payload.id ? { ...c, title: action.payload.title } : c) };
+    case 'UPDATE_CHAPTER_GOAL':
+      return { 
+        ...state, 
+        chapters: state.chapters.map(c => c.id === action.payload.id ? { 
+          ...c, 
+          goalWordCount: 'goalWordCount' in action.payload ? action.payload.goalWordCount : c.goalWordCount,
+          deadline: 'deadline' in action.payload ? action.payload.deadline : c.deadline,
+          completed: 'completed' in action.payload ? action.payload.completed : c.completed
+        } : c) 
+      };
     case 'MERGE_BLOCK_UP': {
       const blockId = action.payload;
       const block = state.blocks.find(b => b.id === blockId);
@@ -633,44 +630,21 @@ function innerReducer(state: StoreState, action: Action): StoreState {
         } : c)
       };
     }
-    case 'ADD_WHITEBOARD_NODE': {
-      const newNode: WhiteboardNode = { id: uuidv4(), workId: action.payload.workId, position: action.payload.position };
-      return { ...state, whiteboardNodes: [...(state.whiteboardNodes || []), newNode] };
+    case 'ADD_DEADLINE': {
+      const newDeadline: Deadline = { id: uuidv4(), workId: action.payload.workId, title: action.payload.title, date: action.payload.date, completed: false };
+      return { ...state, deadlines: [...(state.deadlines || []), newDeadline] };
     }
-    case 'UPDATE_WHITEBOARD_NODE': {
+    case 'UPDATE_DEADLINE': {
       return {
         ...state,
-        whiteboardNodes: (state.whiteboardNodes || []).map(n => n.id === action.payload.id ? { ...n, ...action.payload } : n)
+        deadlines: (state.deadlines || []).map(d => d.id === action.payload.id ? { ...d, ...action.payload } : d)
       };
     }
-    case 'DELETE_WHITEBOARD_NODE': {
+    case 'DELETE_DEADLINE': {
       return {
         ...state,
-        whiteboardNodes: (state.whiteboardNodes || []).filter(n => n.id !== action.payload),
-        whiteboardEdges: (state.whiteboardEdges || []).filter(e => e.source !== action.payload && e.target !== action.payload)
+        deadlines: (state.deadlines || []).filter(d => d.id !== action.payload)
       };
-    }
-    case 'ADD_WHITEBOARD_EDGE': {
-      const newEdge: WhiteboardEdge = { id: uuidv4(), source: action.payload.source, target: action.payload.target, label: action.payload.label };
-      return { ...state, whiteboardEdges: [...(state.whiteboardEdges || []), newEdge] };
-    }
-    case 'UPDATE_WHITEBOARD_EDGE': {
-      return {
-        ...state,
-        whiteboardEdges: (state.whiteboardEdges || []).map(e => e.id === action.payload.id ? { ...e, label: action.payload.label } : e)
-      };
-    }
-    case 'DELETE_WHITEBOARD_EDGE': {
-      return {
-        ...state,
-        whiteboardEdges: (state.whiteboardEdges || []).filter(e => e.id !== action.payload)
-      };
-    }
-    case 'SET_WHITEBOARD_NODES': {
-      return { ...state, whiteboardNodes: action.payload };
-    }
-    case 'SET_WHITEBOARD_EDGES': {
-      return { ...state, whiteboardEdges: action.payload };
     }
     default:
       return state;
@@ -749,8 +723,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         return {
           ...initial,
           ...parsed,
-          whiteboardNodes: parsed.whiteboardNodes || initial.whiteboardNodes || [],
-          whiteboardEdges: parsed.whiteboardEdges || initial.whiteboardEdges || []
+          deadlines: parsed.deadlines || initial.deadlines || []
         };
       }
     } catch (e) {

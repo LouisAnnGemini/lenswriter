@@ -6,7 +6,7 @@ import { OutlinePanel } from './components/OutlinePanel';
 import { EditorPanel } from './components/EditorPanel';
 import { LensesTab } from './components/LensesTab';
 import { CharactersTab } from './components/CharactersTab';
-import { ArchitectureTab } from './components/ArchitectureTab';
+import { DeadlineTab } from './components/DeadlineTab';
 import { CompileTab } from './components/CompileTab';
 import { Minimize2, MessageSquare, MessageSquareOff, EyeOff, Eye } from 'lucide-react';
 import { cn } from './lib/utils';
@@ -37,7 +37,7 @@ function MainContent({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, setMo
         )}
         {state.activeTab === 'lenses' && <LensesTab />}
         {state.activeTab === 'characters' && <CharactersTab />}
-        {state.activeTab === 'architecture' && <ArchitectureTab />}
+        {state.activeTab === 'deadline' && <DeadlineTab />}
         {state.activeTab === 'compile' && <CompileTab />}
       </div>
       
