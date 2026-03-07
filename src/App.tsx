@@ -99,10 +99,14 @@ function Layout() {
   );
 }
 
+import { BackupProvider } from './context/BackupContext';
+
 export default function App() {
   return (
     <StoreProvider>
-      <Layout />
+      <BackupProvider>
+        <Layout />
+      </BackupProvider>
     </StoreProvider>
   );
 }

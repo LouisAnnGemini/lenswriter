@@ -1,120 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useStore } from '../store/StoreContext';
+import React from 'react';
+import { useBackup } from '../context/BackupContext';
 import { FolderOpen, Save, AlertCircle, CheckCircle2, Clock, RotateCcw, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function BackupManager({ onClose }: { onClose: () => void }) {
-  const { state } = useStore();
-  const [directoryHandle, setDirectoryHandle] = useState<FileSystemDirectoryHandle | null>(null);
-  const [isBackupEnabled, setIsBackupEnabled] = useState(false);
-  const [lastBackupTime, setLastBackupTime] = useState<Date | null>(null);
-  const [backupCount, setBackupCount] = useState(0);
-  const [statusMessage, setStatusMessage] = useState<string>('');
-  const [statusType, setStatusType] = useState<'info' | 'success' | 'error'>('info');
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Check if File System Access API is supported
-  const isSupported = 'showDirectoryPicker' in window;
-
-  const handleSelectDirectory = async () => {
-    if (!isSupported) {
-      setStatusMessage('File System Access API is not supported in this browser.');
-      setStatusType('error');
-      return;
-    }
-
-    try {
-      const handle = await (window as any).showDirectoryPicker();
-      setDirectoryHandle(handle);
-      setStatusMessage(`Selected directory: ${handle.name}`);
-      setStatusType('success');
-      
-      // Count existing backups
-      let count = 0;
-      for await (const entry of handle.values()) {
-        if (entry.kind === 'file' && entry.name.startsWith('lenswriter_backup_') && entry.name.endsWith('.json')) {
-          count++;
-        }
-      }
-      setBackupCount(count);
-    } catch (error) {
-      console.error('Error selecting directory:', error);
-      setStatusMessage('Failed to select directory or permission denied.');
-      setStatusType('error');
-    }
-  };
-
-  const performBackup = async () => {
-    if (!directoryHandle) return;
-
-    try {
-      // 1. Generate filename
-      const now = new Date();
-      const timestamp = now.toISOString().replace(/[:.]/g, '-');
-      const filename = `lenswriter_backup_${timestamp}.json`;
-      const content = JSON.stringify(state, null, 2);
-
-      // 2. Write new file
-      const fileHandle = await directoryHandle.getFileHandle(filename, { create: true });
-      const writable = await fileHandle.createWritable();
-      await writable.write(content);
-      await writable.close();
-
-      setLastBackupTime(now);
-      setStatusMessage(`Backup created: ${filename}`);
-      setStatusType('success');
-
-      // 3. Rotate backups (keep last 30)
-      const backups: { name: string, handle: FileSystemFileHandle }[] = [];
-      for await (const entry of directoryHandle.values()) {
-        if (entry.kind === 'file' && entry.name.startsWith('lenswriter_backup_') && entry.name.endsWith('.json')) {
-          backups.push({ name: entry.name, handle: entry as FileSystemFileHandle });
-        }
-      }
-
-      // Sort by name (which includes timestamp)
-      backups.sort((a, b) => a.name.localeCompare(b.name));
-
-      setBackupCount(backups.length);
-
-      if (backups.length > 30) {
-        const toDelete = backups.slice(0, backups.length - 30);
-        for (const file of toDelete) {
-          await directoryHandle.removeEntry(file.name);
-        }
-        setBackupCount(30);
-        setStatusMessage(`Backup created. Removed ${toDelete.length} old backup(s).`);
-      }
-
-    } catch (error) {
-      console.error('Backup failed:', error);
-      setStatusMessage('Backup failed. Permission might have expired.');
-      setStatusType('error');
-      setIsBackupEnabled(false); // Stop auto-backup on error
-    }
-  };
-
-  // Toggle Auto-Backup
-  useEffect(() => {
-    if (isBackupEnabled && directoryHandle) {
-      // Perform immediate backup when enabled
-      performBackup();
-
-      // Set interval for 10 minutes
-      intervalRef.current = setInterval(performBackup, 10 * 60 * 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [isBackupEnabled, directoryHandle]);
+  const {
+    directoryHandle,
+    isBackupEnabled,
+    lastBackupTime,
+    backupCount,
+    statusMessage,
+    statusType,
+    selectDirectory,
+    toggleBackup,
+    isSupported
+  } = useBackup();
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -144,7 +44,7 @@ export function BackupManager({ onClose }: { onClose: () => void }) {
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium text-stone-700">Backup Directory</div>
                   <button
-                    onClick={handleSelectDirectory}
+                    onClick={selectDirectory}
                     className="flex items-center px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-md text-xs font-medium transition-colors border border-stone-300"
                   >
                     <FolderOpen size={14} className="mr-1.5" />
@@ -173,7 +73,7 @@ export function BackupManager({ onClose }: { onClose: () => void }) {
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium text-stone-700">Auto-Backup (Every 10m)</div>
                   <button
-                    onClick={() => setIsBackupEnabled(!isBackupEnabled)}
+                    onClick={toggleBackup}
                     disabled={!directoryHandle}
                     className={cn(
                       "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2",

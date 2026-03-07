@@ -46,7 +46,9 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
   };
 
   const handleExport = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { past, future, ...stateToExport } = state;
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(stateToExport));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
     downloadAnchorNode.setAttribute("download", "story-weaver-data.json");

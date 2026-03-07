@@ -6,8 +6,8 @@ import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Calendar as CalendarIc
 export function DeadlineTab() {
   const { state, dispatch } = useStore();
   const [currentDate, setCurrentDate] = useState(() => {
-    // Use the provided current local time: 2026-03-06T18:56:25-08:00
-    return new Date('2026-03-06T18:56:25-08:00');
+    // Use the provided current local time: 2026-03-06T19:19:17-08:00
+    return new Date('2026-03-06T19:19:17-08:00');
   });
 
   // State to track expanded works

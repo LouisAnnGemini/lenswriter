@@ -703,9 +703,15 @@ function storeReducer(state: StoreState, action: Action): StoreState {
 
   const { past, future, ...stateWithoutHistory } = state;
 
+  const MAX_HISTORY = 50;
+  let newPast = [...(past || []), stateWithoutHistory as StoreState];
+  if (newPast.length > MAX_HISTORY) {
+    newPast = newPast.slice(newPast.length - MAX_HISTORY);
+  }
+
   return {
     ...newState,
-    past: [...(past || []), stateWithoutHistory as StoreState],
+    past: newPast,
     future: []
   };
 }
@@ -736,7 +742,8 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   React.useEffect(() => {
     try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
+      const { past, future, ...stateToSave } = state;
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
     } catch (e) {
       console.error("Failed to save to local storage", e);
     }
