@@ -14,7 +14,7 @@ const LENS_COLORS = {
   black: 'bg-stone-900 border-stone-700 text-stone-100',
 };
 
-const AutoResizeTextarea = ({ value, onChange, className, placeholder, scrollContainerRef, searchTerm, ...props }: any) => {
+const AutoResizeTextarea = ({ value, onChange, className, placeholder, scrollContainerRef, searchTerm, blockId, ...props }: any) => {
   const ref = useRef<HTMLTextAreaElement>(null);
   
   const adjustHeight = React.useCallback(() => {
@@ -79,9 +79,13 @@ const AutoResizeTextarea = ({ value, onChange, className, placeholder, scrollCon
         className={cn(className, "absolute inset-0 pointer-events-none whitespace-pre-wrap break-words text-transparent bg-transparent z-0")} 
         aria-hidden="true"
       >
-        {parts.map((part: string, i: number) => 
-          i % 2 === 1 ? <span key={i} className="bg-yellow-200/50 text-transparent">{part}</span> : <span key={i}>{part}</span>
-        )}
+        {parts.map((part: string, i: number) => {
+          if (i % 2 === 1) {
+            const matchIndex = (i - 1) / 2;
+            return <span key={i} id={blockId ? `highlight-${blockId}-${matchIndex}` : undefined} className="bg-yellow-200/50 text-transparent">{part}</span>;
+          }
+          return <span key={i}>{part}</span>;
+        })}
       </div>
     );
   };
@@ -527,6 +531,7 @@ export function EditorPanel() {
                         scrollContainerRef={scrollContainerRef}
                         value={block.content}
                         searchTerm={searchTerm}
+                        blockId={block.id}
                         onChange={(e: any) => handleBlockChange(block.id, { content: e.target.value })}
                         onKeyDown={(e: React.KeyboardEvent) => {
                           if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {

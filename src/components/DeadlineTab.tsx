@@ -36,7 +36,7 @@ export function DeadlineTab() {
 
   // Word count calculations
   const getDocumentWordCount = (docId: string) => {
-    const blocks = state.blocks.filter(b => b.documentId === docId && b.type === 'text');
+    const blocks = state.blocks.filter(b => b.documentId === docId && (b.type === 'text' || b.type === 'lens'));
     return blocks.reduce((sum, b) => sum + countWords(b.content), 0);
   };
 

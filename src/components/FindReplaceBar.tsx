@@ -8,6 +8,7 @@ interface Match {
   index: number;
   length: number;
   content: string;
+  localIndex: number;
 }
 
 export function FindReplaceBar({ onClose, onSearchChange }: { onClose: () => void; onSearchChange: (text: string) => void }) {
@@ -27,7 +28,16 @@ export function FindReplaceBar({ onClose, onSearchChange }: { onClose: () => voi
   }, [findText, onSearchChange]);
 
   // Scroll to match
-  const scrollToMatch = (blockId: string) => {
+  const scrollToMatch = (match: Match) => {
+    const highlightId = `highlight-${match.blockId}-${match.localIndex}`;
+    const highlightEl = document.getElementById(highlightId);
+    
+    if (highlightEl) {
+        highlightEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
+
+    const blockId = match.blockId;
     const element = document.getElementById(`block-${blockId}`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -36,7 +46,7 @@ export function FindReplaceBar({ onClose, onSearchChange }: { onClose: () => voi
         if (block && block.documentId !== state.activeDocumentId) {
             dispatch({ type: 'SET_ACTIVE_DOCUMENT', payload: block.documentId });
             setTimeout(() => {
-                const el = document.getElementById(`block-${blockId}`);
+                const el = document.getElementById(highlightId) || document.getElementById(`block-${blockId}`);
                 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 100);
         }
@@ -99,12 +109,14 @@ export function FindReplaceBar({ onClose, onSearchChange }: { onClose: () => voi
         sortedBlocks.forEach(block => {
             if (!block.content) return;
             let match;
+            let localIndex = 0;
             while ((match = regex.exec(block.content)) !== null) {
                 newMatches.push({
                     blockId: block.id,
                     index: match.index,
                     length: match[0].length,
-                    content: block.content
+                    content: block.content,
+                    localIndex: localIndex++
                 });
             }
         });
@@ -114,16 +126,11 @@ export function FindReplaceBar({ onClose, onSearchChange }: { onClose: () => voi
         if (newMatches.length > 0) {
             if (paramsChanged) {
                 setCurrentMatchIndex(0);
-                scrollToMatch(newMatches[0].blockId);
+                scrollToMatch(newMatches[0]);
             } else {
                 // Try to preserve position
                 setCurrentMatchIndex(prev => {
                     if (prev === -1) return 0;
-                    // If we were at index i, and now we have N matches, stay at i (clamped)
-                    // This is a simple heuristic. A better one would be tracking the blockId.
-                    // But since we are inside the effect, we don't have easy access to the *previous* matches array 
-                    // unless we use a ref for matches too.
-                    // Let's just clamp.
                     return Math.min(prev, newMatches.length - 1);
                 });
             }
@@ -139,14 +146,14 @@ export function FindReplaceBar({ onClose, onSearchChange }: { onClose: () => voi
     if (matches.length === 0) return;
     const nextIndex = (currentMatchIndex + 1) % matches.length;
     setCurrentMatchIndex(nextIndex);
-    scrollToMatch(matches[nextIndex].blockId);
+    scrollToMatch(matches[nextIndex]);
   };
 
   const handlePrev = () => {
     if (matches.length === 0) return;
     const prevIndex = (currentMatchIndex - 1 + matches.length) % matches.length;
     setCurrentMatchIndex(prevIndex);
-    scrollToMatch(matches[prevIndex].blockId);
+    scrollToMatch(matches[prevIndex]);
   };
 
   const handleReplace = () => {
