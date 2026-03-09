@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore, CharacterFieldType } from '../store/StoreContext';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { Users, Plus, GripVertical, User, MapPin, ChevronLeft, Settings, X, Trash2 } from 'lucide-react';
+import { Users, Plus, GripVertical, User, MapPin, ChevronLeft, Settings, X, Trash2, Type, Hash, List, CheckSquare, Activity, FileText } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -109,6 +109,7 @@ export function CharactersTab() {
               {(provided) => (
                 <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-1">
                   {characters.map((char, index) => {
+                    const appearanceCount = getAppearances(char.id).length;
                     return (
                       // @ts-expect-error React 19 key prop issue
                       <Draggable key={char.id} draggableId={char.id} index={index}>
@@ -126,8 +127,16 @@ export function CharactersTab() {
                           <div {...provided.dragHandleProps} className="mr-2 text-stone-400 opacity-0 group-hover:opacity-100 cursor-grab">
                             <GripVertical size={14} />
                           </div>
-                          <User size={14} className="mr-2 text-stone-400" />
+                          <User size={14} className={cn("mr-2", activeChar?.id === char.id ? "text-emerald-500" : "text-stone-400")} />
                           <span className="flex-1 truncate">{char.name}</span>
+                          {appearanceCount > 0 && (
+                            <span className={cn(
+                              "text-[10px] px-1.5 py-0.5 rounded-full ml-2",
+                              activeChar?.id === char.id ? "bg-emerald-200/50 text-emerald-700" : "bg-stone-200 text-stone-500 group-hover:bg-stone-300"
+                            )}>
+                              {appearanceCount}
+                            </span>
+                          )}
                         </div>
                       )}
                     </Draggable>
@@ -167,28 +176,47 @@ export function CharactersTab() {
             {/* Custom Fields */}
             <div>
               <div className="flex items-center justify-between mb-4">
-                <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider">Attributes</label>
+                <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider flex items-center">
+                  <Activity size={14} className="mr-2" />
+                  Attributes
+                </label>
                 <button onClick={() => setShowFieldManager(true)} className="text-xs flex items-center text-stone-500 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-2 py-1 rounded transition-colors">
                   <Settings size={12} className="mr-1" /> Configure Fields
                 </button>
               </div>
               
               {(!activeWork?.characterFields || activeWork.characterFields.length === 0) ? (
-                <div className="text-sm text-stone-400 italic bg-stone-50 p-4 rounded-xl border border-stone-100 text-center">
-                  No custom fields defined. Click "Configure Fields" to add age, gender, tags, etc.
+                <div className="text-sm text-stone-400 italic bg-stone-50 p-8 rounded-xl border border-stone-200 border-dashed text-center flex flex-col items-center justify-center">
+                  <Settings size={24} className="mb-2 opacity-50" />
+                  <p>No custom fields defined.</p>
+                  <p className="mt-1 text-xs">Click "Configure Fields" to add age, gender, tags, etc.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-stone-50 p-4 rounded-xl border border-stone-100">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-stone-50/50 p-4 rounded-xl border border-stone-100">
                   {activeWork.characterFields.map(field => {
                     const value = activeChar.customFields?.[field.id];
+                    
+                    const getFieldIcon = (type: string) => {
+                      switch (type) {
+                        case 'text': return <Type size={12} className="mr-1.5 text-stone-400" />;
+                        case 'number': return <Hash size={12} className="mr-1.5 text-stone-400" />;
+                        case 'select': return <List size={12} className="mr-1.5 text-stone-400" />;
+                        case 'multiselect': return <CheckSquare size={12} className="mr-1.5 text-stone-400" />;
+                        default: return null;
+                      }
+                    };
+
                     return (
-                      <div key={field.id} className="space-y-1">
-                        <label className="block text-xs font-medium text-stone-500">{field.name}</label>
+                      <div key={field.id} className="space-y-1.5 bg-white p-3 rounded-lg border border-stone-200 shadow-sm">
+                        <label className="flex items-center text-xs font-medium text-stone-600 uppercase tracking-wide">
+                          {getFieldIcon(field.type)}
+                          {field.name}
+                        </label>
                         {field.type === 'text' && (
-                          <textarea value={value || ''} onChange={e => dispatch({type: 'UPDATE_CHARACTER_CUSTOM_FIELD', payload: {characterId: activeChar.id, fieldId: field.id, value: e.target.value}})} className="w-full text-sm p-2 rounded border border-stone-200 outline-none focus:border-emerald-500 bg-white resize-y min-h-[42px] whitespace-normal break-words" rows={1} />
+                          <textarea value={value || ''} onChange={e => dispatch({type: 'UPDATE_CHARACTER_CUSTOM_FIELD', payload: {characterId: activeChar.id, fieldId: field.id, value: e.target.value}})} className="w-full text-sm p-2 rounded border border-stone-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-stone-50 resize-y min-h-[42px] whitespace-normal break-words transition-all" rows={1} placeholder={`Enter ${field.name.toLowerCase()}...`} />
                         )}
                         {field.type === 'number' && (
-                          <input type="number" value={value || ''} onChange={e => dispatch({type: 'UPDATE_CHARACTER_CUSTOM_FIELD', payload: {characterId: activeChar.id, fieldId: field.id, value: e.target.value ? Number(e.target.value) : ''}})} className="w-full text-sm p-2 rounded border border-stone-200 outline-none focus:border-emerald-500 bg-white" />
+                          <input type="number" value={value || ''} onChange={e => dispatch({type: 'UPDATE_CHARACTER_CUSTOM_FIELD', payload: {characterId: activeChar.id, fieldId: field.id, value: e.target.value ? Number(e.target.value) : ''}})} className="w-full text-sm p-2 rounded border border-stone-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-stone-50 transition-all" placeholder={`Enter ${field.name.toLowerCase()}...`} />
                         )}
                         {field.type === 'select' && (
                           <div className="flex flex-wrap gap-1.5 pt-1">
@@ -202,7 +230,7 @@ export function CharactersTab() {
                                     const newValue = isSelected ? '' : opt;
                                     dispatch({type: 'UPDATE_CHARACTER_CUSTOM_FIELD', payload: {characterId: activeChar.id, fieldId: field.id, value: newValue}});
                                   }}
-                                  className={cn("px-2.5 py-1 text-xs rounded-full border transition-colors", isSelected ? "bg-emerald-100 border-emerald-500 text-emerald-800 font-medium" : "bg-white border-stone-200 text-stone-600 hover:border-stone-300")}
+                                  className={cn("px-3 py-1.5 text-xs rounded-md border transition-all duration-200", isSelected ? "bg-emerald-50 border-emerald-500 text-emerald-700 font-medium shadow-sm" : "bg-stone-50 border-stone-200 text-stone-600 hover:border-stone-300 hover:bg-stone-100")}
                                 >
                                   {opt}
                                 </button>
@@ -218,7 +246,7 @@ export function CharactersTab() {
                                 <button
                                   key={opt}
                                   onClick={() => handleMultiSelectToggle(activeChar.id, field.id, opt, value || [])}
-                                  className={cn("px-2.5 py-1 text-xs rounded-full border transition-colors", isSelected ? "bg-emerald-100 border-emerald-500 text-emerald-800 font-medium" : "bg-white border-stone-200 text-stone-600 hover:border-stone-300")}
+                                  className={cn("px-3 py-1.5 text-xs rounded-md border transition-all duration-200", isSelected ? "bg-emerald-50 border-emerald-500 text-emerald-700 font-medium shadow-sm" : "bg-stone-50 border-stone-200 text-stone-600 hover:border-stone-300 hover:bg-stone-100")}
                                 >
                                   {opt}
                                 </button>
@@ -235,7 +263,10 @@ export function CharactersTab() {
 
             {/* Description */}
             <div>
-              <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-4">Background & Description</label>
+              <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-4 flex items-center">
+                <FileText size={14} className="mr-2" />
+                Background & Description
+              </label>
               <textarea
                 value={activeChar.description}
                 onChange={(e) => handleUpdateCharacter(activeChar.id, { description: e.target.value })}
@@ -246,20 +277,33 @@ export function CharactersTab() {
 
             {/* Appearances */}
             <div>
-              <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-4 flex items-center">
-                <MapPin size={14} className="mr-2" />
-                Appearances Tracker
-              </label>
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider flex items-center">
+                  <MapPin size={14} className="mr-2" />
+                  Appearances Tracker
+                </label>
+                {(() => {
+                  const appearances = getAppearances(activeChar.id);
+                  if (appearances.length > 0) {
+                    return (
+                      <span className="text-xs font-medium bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">
+                        {appearances.length} Scene{appearances.length !== 1 ? 's' : ''}
+                      </span>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
               
-              <div className="bg-stone-50 border border-stone-200 rounded-xl overflow-hidden">
+              <div className="bg-stone-50 border border-stone-200 rounded-xl overflow-hidden shadow-sm">
                 {(() => {
                   const appearances = getAppearances(activeChar.id);
                   if (appearances.length === 0) {
                     return (
-                      <div className="p-8 text-center text-stone-500 text-sm">
-                        This character hasn't appeared in any scenes yet.
-                        <br />
-                        <span className="opacity-70">Bind them to a scene in the Writing tab.</span>
+                      <div className="p-12 text-center text-stone-500 text-sm flex flex-col items-center justify-center">
+                        <MapPin size={32} className="mb-3 text-stone-300" />
+                        <p className="font-medium text-stone-600">No appearances yet</p>
+                        <p className="mt-1 text-xs opacity-70 max-w-xs">Bind this character to a scene in the Writing tab to track their journey.</p>
                       </div>
                     );
                   }
@@ -267,17 +311,17 @@ export function CharactersTab() {
                   return (
                     <div className="divide-y divide-stone-200">
                       {appearances.map((app, i) => (
-                        <div key={i} className="p-4 flex items-start justify-between hover:bg-stone-100/50 transition-colors">
-                          <div className="flex-1 pr-4">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <span className="text-xs font-mono text-stone-500 bg-stone-200 px-1.5 py-0.5 rounded">{app.sceneIndexStr}</span>
-                              <span className="text-sm font-medium text-stone-900">{app.sceneTitle}</span>
+                        <div key={i} className="p-4 flex items-start justify-between hover:bg-white transition-colors group">
+                          <div className="flex-1 pr-6">
+                            <div className="flex items-center space-x-3 mb-3">
+                              <span className="text-xs font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md shadow-sm">{app.sceneIndexStr}</span>
+                              <span className="text-sm font-semibold text-stone-900">{app.sceneTitle}</span>
                             </div>
                             <textarea
                               value={app.note}
                               onChange={(e) => dispatch({ type: 'UPDATE_SCENE_CHARACTER_NOTE', payload: { sceneId: app.sceneId, characterId: activeChar.id, note: e.target.value } })}
-                              placeholder="Add notes for this appearance..."
-                              className="w-full text-sm text-stone-700 bg-white p-2 rounded border border-stone-200 outline-none focus:border-emerald-500 transition-colors resize-y min-h-[60px] whitespace-normal break-words"
+                              placeholder="Add notes for this appearance (e.g., emotional state, key actions)..."
+                              className="w-full text-sm text-stone-700 bg-stone-50 group-hover:bg-white p-3 rounded-lg border border-stone-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all resize-y min-h-[60px] whitespace-normal break-words"
                             />
                           </div>
                           <button 
@@ -285,7 +329,7 @@ export function CharactersTab() {
                               dispatch({ type: 'SET_ACTIVE_TAB', payload: 'writing' });
                               dispatch({ type: 'SET_ACTIVE_DOCUMENT', payload: app.sceneId });
                             }}
-                            className="px-3 py-1.5 bg-white border border-stone-200 hover:border-emerald-500 hover:text-emerald-700 rounded-md text-xs font-medium text-stone-600 transition-colors shadow-sm shrink-0 mt-1"
+                            className="px-3 py-2 bg-white border border-stone-200 hover:border-emerald-500 hover:text-emerald-700 rounded-lg text-xs font-medium text-stone-600 transition-all shadow-sm shrink-0 mt-1 flex items-center"
                           >
                             Go to Scene
                           </button>
@@ -299,9 +343,21 @@ export function CharactersTab() {
           </div>
         </div>
       ) : (
-        <div className="hidden md:flex flex-1 flex-col items-center justify-center text-stone-400">
-          <Users size={48} className="mb-4 opacity-20" />
-          <p>Select or create a character to view details.</p>
+        <div className="hidden md:flex flex-1 flex-col items-center justify-center text-stone-400 bg-stone-50/30">
+          <div className="bg-white p-8 rounded-2xl shadow-sm border border-stone-100 flex flex-col items-center max-w-sm text-center">
+            <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mb-4">
+              <Users size={32} className="text-emerald-500" />
+            </div>
+            <h3 className="text-lg font-semibold text-stone-900 mb-2">Character Profiles</h3>
+            <p className="text-sm text-stone-500 mb-6">Select a character from the sidebar to view their details, or create a new one to start building your cast.</p>
+            <button 
+              onClick={handleAddCharacter}
+              className="flex items-center px-4 py-2 bg-stone-900 text-white rounded-lg text-sm font-medium hover:bg-stone-800 transition-colors shadow-sm"
+            >
+              <Plus size={16} className="mr-2" />
+              {characters.length === 0 ? 'Add First Character' : 'Add Character'}
+            </button>
+          </div>
         </div>
       )}
 

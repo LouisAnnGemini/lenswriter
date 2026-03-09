@@ -100,10 +100,13 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
               key={mode}
               onClick={() => setViewMode(mode)}
               className={cn(
-                "flex-1 text-xs py-1.5 rounded-md font-medium capitalize transition-all",
+                "flex-1 flex items-center justify-center text-xs py-1.5 rounded-md font-medium capitalize transition-all",
                 viewMode === mode ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-700"
               )}
             >
+              {mode === 'outline' && <Folder size={14} className="mr-1.5" />}
+              {mode === 'default' && <FileText size={14} className="mr-1.5" />}
+              {mode === 'scenes' && <GripVertical size={14} className="mr-1.5" />}
               {mode}
             </button>
           ))}
@@ -127,7 +130,7 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
                           className={cn(
                             "group flex items-center p-2 rounded-md text-sm transition-colors",
                             snapshot.isDragging ? "bg-white shadow-md" : "hover:bg-stone-100",
-                            state.activeDocumentId === chapter.id ? "bg-emerald-50 text-emerald-900" : "text-stone-700"
+                            state.activeDocumentId === chapter.id ? "bg-emerald-50 text-emerald-900 font-medium shadow-sm border border-emerald-100" : "text-stone-700 border border-transparent"
                           )}
                         >
                           <div {...provided.dragHandleProps} className="mr-2 text-stone-400 opacity-0 group-hover:opacity-100 cursor-grab">
@@ -161,8 +164,8 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
                 <div key={chapter.id} className="space-y-1">
                   <div 
                     className={cn(
-                      "flex items-center justify-between p-2 rounded-md text-sm font-medium group cursor-pointer",
-                      state.activeDocumentId === chapter.id ? "bg-emerald-50 text-emerald-900" : "text-stone-900 hover:bg-stone-100"
+                      "flex items-center justify-between p-2 rounded-md text-sm font-medium group cursor-pointer transition-colors",
+                      state.activeDocumentId === chapter.id ? "bg-emerald-50 text-emerald-900 shadow-sm border border-emerald-100" : "text-stone-900 hover:bg-stone-100 border border-transparent"
                     )}
                     onClick={() => {
                       dispatch({ type: 'SET_ACTIVE_DOCUMENT', payload: chapter.id });
@@ -180,9 +183,10 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
                             e.stopPropagation(); 
                             addScene(chapter.id); 
                           }}
-                          className="md:opacity-0 md:group-hover:opacity-100 opacity-100 p-1 hover:bg-stone-200 rounded text-stone-50 relative z-10"
+                          className="md:opacity-0 md:group-hover:opacity-100 opacity-100 p-1 hover:bg-emerald-100 hover:text-emerald-700 rounded text-stone-400 transition-all relative z-10"
+                          title="Add Scene"
                         >
-                          <Plus size={14} className="text-stone-500" />
+                          <Plus size={14} />
                         </button>
                       )}
                       {renderDeleteButton(chapter.id, () => dispatch({ type: 'DELETE_CHAPTER', payload: chapter.id }), 14)}
@@ -198,7 +202,7 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
                         }}
                         className={cn(
                           "flex items-center justify-between p-1.5 rounded-md text-sm cursor-pointer transition-colors group/scene",
-                          state.activeDocumentId === scene.id ? "bg-emerald-50 text-emerald-900 font-medium" : "text-stone-600 hover:bg-stone-100"
+                          state.activeDocumentId === scene.id ? "bg-emerald-50 text-emerald-900 font-medium shadow-sm border border-emerald-100" : "text-stone-600 hover:bg-stone-100 border border-transparent"
                         )}
                       >
                         <div className="flex items-center flex-1 min-w-0">
@@ -252,7 +256,7 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
                                   className={cn(
                                     "group flex items-center p-2 rounded-md text-sm transition-colors",
                                     snapshot.isDragging ? "bg-white shadow-md ring-1 ring-stone-200" : "hover:bg-stone-100",
-                                    state.activeDocumentId === scene.id ? "bg-emerald-50 text-emerald-900" : "text-stone-700"
+                                    state.activeDocumentId === scene.id ? "bg-emerald-50 text-emerald-900 font-medium shadow-sm border border-emerald-100" : "text-stone-700 border border-transparent"
                                   )}
                                 >
                                   <div {...provided.dragHandleProps} className="mr-2 text-stone-400 opacity-0 group-hover:opacity-100 cursor-grab">
@@ -287,10 +291,10 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
         </DragDropContext>
       </div>
       
-      <div className="p-3 border-t border-stone-200">
+      <div className="p-4 border-t border-stone-200 bg-white">
         <button 
           onClick={addChapter}
-          className="w-full flex items-center justify-center py-2 text-sm text-stone-600 hover:text-stone-900 hover:bg-stone-200/50 rounded-md transition-colors border border-dashed border-stone-300"
+          className="w-full flex items-center justify-center py-2.5 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200 shadow-sm"
         >
           <Plus size={16} className="mr-2" />
           Add Chapter

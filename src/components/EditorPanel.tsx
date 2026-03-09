@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useStore } from '../store/StoreContext';
-import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check, ChevronLeft, ArrowUpToLine, MessageSquare, CheckCircle2, Circle, List, PanelRightClose, PanelRightOpen, MessageSquareOff, Search, ExternalLink, Eye } from 'lucide-react';
+import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check, ChevronLeft, ArrowUpToLine, MessageSquare, CheckCircle2, Circle, List, PanelRightClose, PanelRightOpen, MessageSquareOff, Search, ExternalLink, Eye, FileText, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { FindReplaceBar } from './FindReplaceBar';
 
@@ -409,6 +409,39 @@ export function EditorPanel() {
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {/* Chapter Scenes List */}
+          {!isScene && !state.disguiseMode && (
+            <div className="mb-12 space-y-4">
+              <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider border-b border-stone-100 pb-2">Scenes in this Chapter</h3>
+              {state.scenes.filter(s => s.chapterId === activeDocId).sort((a, b) => a.order - b.order).length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {state.scenes.filter(s => s.chapterId === activeDocId).sort((a, b) => a.order - b.order).map(scene => (
+                    <button
+                      key={scene.id}
+                      onClick={() => dispatch({ type: 'SET_ACTIVE_DOCUMENT', payload: scene.id })}
+                      className="flex items-center p-3 rounded-lg border border-stone-200 bg-white hover:border-emerald-300 hover:shadow-sm transition-all text-left group"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-stone-900 truncate group-hover:text-emerald-700 transition-colors">
+                          {scene.title || 'Untitled Scene'}
+                        </div>
+                        <div className="text-xs text-stone-500 mt-1 flex items-center">
+                          <FileText size={12} className="mr-1" />
+                          Scene {scene.order + 1}
+                        </div>
+                      </div>
+                      <ChevronRight size={16} className="text-stone-300 group-hover:text-emerald-500 transition-colors ml-2 shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-stone-500 italic p-4 bg-stone-50 rounded-lg border border-stone-100 text-center">
+                  No scenes in this chapter yet.
+                </div>
+              )}
             </div>
           )}
 

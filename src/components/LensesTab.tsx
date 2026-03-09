@@ -4,13 +4,13 @@ import { Layers, MapPin, Edit2, Link as LinkIcon, X, Plus, Lock, Filter, Externa
 import { cn } from '../lib/utils';
 
 const LENS_COLORS = {
-  red: 'bg-red-50 border-red-200 text-red-900',
-  blue: 'bg-blue-50 border-blue-200 text-blue-900',
-  green: 'bg-emerald-50 border-emerald-200 text-emerald-900',
-  yellow: 'bg-amber-50 border-amber-200 text-amber-900',
-  purple: 'bg-purple-50 border-purple-200 text-purple-900',
-  brown: 'bg-orange-200 border-orange-200 text-orange-900',
-  black: 'bg-stone-900 border-stone-700 text-stone-100',
+  red: 'bg-red-50/80 border-red-200 text-red-900 hover:bg-red-50',
+  blue: 'bg-blue-50/80 border-blue-200 text-blue-900 hover:bg-blue-50',
+  green: 'bg-emerald-50/80 border-emerald-200 text-emerald-900 hover:bg-emerald-50',
+  yellow: 'bg-amber-50/80 border-amber-200 text-amber-900 hover:bg-amber-50',
+  purple: 'bg-purple-50/80 border-purple-200 text-purple-900 hover:bg-purple-50',
+  brown: 'bg-orange-200 border-orange-200 text-orange-900 hover:bg-orange-200',
+  black: 'bg-stone-900 border-stone-700 text-stone-100 hover:bg-stone-800',
 };
 
 export function LensesTab() {
@@ -138,7 +138,7 @@ export function LensesTab() {
             </div>
             <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4 w-full md:w-auto">
               {/* Private Note Search */}
-              <div className="flex items-center space-x-2 bg-white border border-stone-200 rounded-lg px-3 py-2 md:py-1.5 shadow-sm w-full md:w-auto">
+              <div className="flex items-center space-x-2 bg-white border border-stone-200 rounded-lg px-3 py-2 md:py-1.5 shadow-sm w-full md:w-auto focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition-all">
                 <Search size={14} className="text-stone-400 shrink-0" />
                 <input
                   type="text"
@@ -155,7 +155,7 @@ export function LensesTab() {
               </div>
 
               {/* Chapter Filter */}
-              <div className="flex items-center space-x-2 bg-white border border-stone-200 rounded-lg px-3 py-2 md:py-1.5 shadow-sm w-full md:w-auto">
+              <div className="flex items-center space-x-2 bg-white border border-stone-200 rounded-lg px-3 py-2 md:py-1.5 shadow-sm w-full md:w-auto hover:border-stone-300 transition-colors">
                 <Filter size={14} className="text-stone-400 shrink-0" />
                 <select 
                   value={filterChapterId}
@@ -170,7 +170,7 @@ export function LensesTab() {
               </div>
 
               {/* Color Filter */}
-              <div className="flex items-center space-x-2 bg-white border border-stone-200 rounded-lg px-3 py-2 md:py-1.5 shadow-sm w-full md:w-auto">
+              <div className="flex items-center space-x-2 bg-white border border-stone-200 rounded-lg px-3 py-2 md:py-1.5 shadow-sm w-full md:w-auto hover:border-stone-300 transition-colors">
                 <div 
                   className={cn(
                     "w-3 h-3 rounded-full border border-black/10 shrink-0",
@@ -197,9 +197,9 @@ export function LensesTab() {
                 key={lens.id}
                 id={`lens-card-${lens.id}`}
                 className={cn(
-                  "break-inside-avoid rounded-xl border-2 p-5 shadow-sm transition-all duration-500 hover:shadow-md cursor-pointer group relative",
+                  "break-inside-avoid rounded-xl border p-5 shadow-sm transition-all duration-300 hover:shadow-md cursor-pointer group relative backdrop-blur-sm",
                   LENS_COLORS[lens.color as keyof typeof LENS_COLORS] || LENS_COLORS.red,
-                  selectedLensId === lens.id && "ring-2 ring-emerald-500 ring-offset-2"
+                  selectedLensId === lens.id && "ring-2 ring-emerald-500 ring-offset-2 shadow-md"
                 )}
                 onClick={() => dispatch({ type: 'SET_ACTIVE_LENS', payload: lens.id })}
               >
@@ -348,9 +348,9 @@ export function LensesTab() {
                       onChange={(e) => handleUpdateLens(lens.id, { content: e.target.value })}
                       placeholder={lens.color === 'black' ? "Hidden content..." : "Enter lens content..."}
                       className={cn(
-                        "w-full h-48 p-4 rounded-lg border-2 resize-none outline-none text-sm font-medium leading-relaxed",
+                        "w-full h-48 p-4 rounded-lg border resize-none outline-none text-sm font-medium leading-relaxed shadow-inner transition-colors",
                         LENS_COLORS[lens.color as keyof typeof LENS_COLORS] || LENS_COLORS.red,
-                        lens.color === 'black' ? "text-transparent focus:text-stone-100 placeholder:text-stone-700 focus:placeholder:text-stone-500 selection:bg-stone-700 selection:text-stone-100" : ""
+                        lens.color === 'black' ? "text-transparent focus:text-stone-100 placeholder:text-stone-700 focus:placeholder:text-stone-500 selection:bg-stone-700 selection:text-stone-100" : "focus:ring-2 focus:ring-emerald-500/20"
                       )}
                     />
                   </div>
