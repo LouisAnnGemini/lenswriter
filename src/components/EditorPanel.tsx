@@ -582,7 +582,7 @@ export function EditorPanel() {
                         placeholder={block.type === 'lens' ? (block.color === 'black' ? "Hidden content..." : "Enter lens content...") : "Start writing..."}
                         className={cn(
                           "w-full outline-none bg-transparent p-0",
-                          state.disguiseMode ? "font-mono text-base leading-snug text-black" : (block.type === 'lens' ? "text-sm font-medium leading-relaxed" : "text-lg leading-relaxed text-stone-800 font-serif"),
+                          state.disguiseMode ? "font-mono text-base leading-snug text-black" : (block.type === 'lens' ? "text-sm font-medium leading-relaxed" : "text-lg leading-loose tracking-wide text-stone-800 font-serif"),
                           block.type === 'lens' && block.color === 'black' && !state.disguiseMode ? "text-transparent focus:text-stone-100 placeholder:text-stone-700 focus:placeholder:text-stone-500 selection:bg-stone-700 selection:text-stone-100" : ""
                         )}
                       />
