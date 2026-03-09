@@ -275,11 +275,11 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
               className="flex-1 flex items-center justify-center py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-md text-xs font-medium transition-colors"
               title="Export Data"
             >
-              <Download size={14} className="mr-2" />
+              <Upload size={14} className="mr-2" />
               Export
             </button>
             <label className="flex-1 flex items-center justify-center py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-md text-xs font-medium transition-colors cursor-pointer" title="Import Data">
-              <Upload size={14} className="mr-2" />
+              <Download size={14} className="mr-2" />
               Import
               <input type="file" accept=".json" onChange={handleImport} className="hidden" />
             </label>

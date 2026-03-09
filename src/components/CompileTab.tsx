@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/StoreContext';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
-import { Copy, Download, CheckSquare, Square, ChevronRight, ChevronDown, FileText } from 'lucide-react';
+import { Copy, Download, Upload, CheckSquare, Square, ChevronRight, ChevronDown, FileText } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function CompileTab() {
@@ -334,7 +334,7 @@ export function CompileTab() {
               disabled={selectedIds.size === 0}
               className="flex items-center px-3 py-1.5 bg-emerald-600 text-white rounded-md text-sm hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Download size={14} className="mr-2" />
+              <Upload size={14} className="mr-2" />
               Export .docx
             </button>
           </div>
