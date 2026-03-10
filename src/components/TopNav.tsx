@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../store/StoreContext';
 import { Edit3, Layers, Users, Maximize2, Minimize2, Menu, ChevronLeft, FileText, MessageSquare, MessageSquareOff, Eye, LogIn, LogOut } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useFirebase } from '../context/FirebaseContext';
-import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
+import { AuthModal } from './AuthModal';
 
 export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => void }) {
   const { state, dispatch } = useStore();
   const { user } = useFirebase();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   if (state.focusMode) return null;
 
@@ -21,6 +23,7 @@ export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => v
 
   return (
     <>
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
       {/* Desktop Top Nav */}
       <div className="h-14 border-b border-stone-200 bg-white flex items-center justify-between px-4 md:px-6 shrink-0">
         <div className="flex items-center">
@@ -68,11 +71,7 @@ export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => v
               if (user) {
                 signOut(auth).catch(console.error);
               } else {
-                signInWithPopup(auth, new GoogleAuthProvider()).catch((error: any) => {
-                  if (error.code !== 'auth/popup-closed-by-user') {
-                    console.error('Authentication error:', error);
-                  }
-                });
+                setIsAuthModalOpen(true);
               }
             }}
             className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md transition-colors"
