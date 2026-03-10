@@ -18,8 +18,8 @@ export function LensesTab() {
   const activeWorkId = state.activeWorkId;
   const activeWork = state.works.find(w => w.id === activeWorkId);
   const selectedLensId = state.activeLensId;
-  const [filterColor, setFilterColor] = useState<string | 'all'>('all');
-  const [filterChapterId, setFilterChapterId] = useState<string | 'all'>('all');
+  const [filterColors, setFilterColors] = useState<string[]>([]);
+  const [filterChapterIds, setFilterChapterIds] = useState<string[]>([]);
   const [privateSearchTerm, setPrivateSearchTerm] = useState('');
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
 
@@ -52,18 +52,18 @@ export function LensesTab() {
   let lenses = state.blocks.filter(b => b.type === 'lens' && documentIds.includes(b.documentId));
 
   // Apply filters
-  if (filterColor !== 'all') {
-    lenses = lenses.filter(l => l.color === filterColor);
+  if (filterColors.length > 0) {
+    lenses = lenses.filter(l => filterColors.includes(l.color));
   }
 
-  if (filterChapterId !== 'all') {
+  if (filterChapterIds.length > 0) {
     lenses = lenses.filter(l => {
       // Direct chapter lens
-      if (l.documentId === filterChapterId) return true;
+      if (filterChapterIds.includes(l.documentId)) return true;
       
       // Scene lens belonging to this chapter
       const scene = state.scenes.find(s => s.id === l.documentId);
-      if (scene && scene.chapterId === filterChapterId) return true;
+      if (scene && filterChapterIds.includes(scene.chapterId)) return true;
       
       return false;
     });
@@ -115,8 +115,8 @@ export function LensesTab() {
       {/* Lenses Grid */}
       <div className={cn("flex-1 overflow-y-auto p-4 md:p-6 transition-all pb-24 md:pb-6", selectedLensId ? "hidden md:block md:pr-96" : "")}>
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 space-y-4 md:space-y-0">
-            <div className="flex-1 max-w-2xl">
+          <div className="flex flex-col mb-8 space-y-6">
+            <div className="max-w-2xl">
               <h2 className="text-2xl font-serif font-semibold text-stone-900">Color Lenses</h2>
               <textarea
                 ref={descriptionRef}
@@ -136,57 +136,116 @@ export function LensesTab() {
                 style={{ minHeight: '24px' }}
               />
             </div>
-            <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4 w-full md:w-auto">
-              {/* Private Note Search */}
-              <div className="flex items-center space-x-2 bg-white border border-stone-200 rounded-lg px-3 py-2 md:py-1.5 shadow-sm w-full md:w-auto focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition-all">
-                <Search size={14} className="text-stone-400 shrink-0" />
+
+            <div className="space-y-4">
+              {/* Search Line */}
+              <div className="flex items-center space-x-2 bg-white border border-stone-200 rounded-lg px-4 py-2.5 shadow-sm w-full focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition-all">
+                <Search size={16} className="text-stone-400 shrink-0" />
                 <input
                   type="text"
                   value={privateSearchTerm}
                   onChange={(e) => setPrivateSearchTerm(e.target.value)}
                   placeholder="Search private notes..."
-                  className="text-xs font-medium bg-transparent border-none outline-none text-stone-600 w-full md:w-32 placeholder:text-stone-400"
+                  className="text-sm font-medium bg-transparent border-none outline-none text-stone-600 w-full placeholder:text-stone-400"
                 />
                 {privateSearchTerm && (
-                  <button onClick={() => setPrivateSearchTerm('')} className="text-stone-400 hover:text-stone-600">
-                    <X size={12} />
+                  <button onClick={() => setPrivateSearchTerm('')} className="text-stone-400 hover:text-stone-600 p-1">
+                    <X size={14} />
                   </button>
                 )}
               </div>
 
-              {/* Chapter Filter */}
-              <div className="flex items-center space-x-2 bg-white border border-stone-200 rounded-lg px-3 py-2 md:py-1.5 shadow-sm w-full md:w-auto hover:border-stone-300 transition-colors">
-                <Filter size={14} className="text-stone-400 shrink-0" />
-                <select 
-                  value={filterChapterId}
-                  onChange={(e) => setFilterChapterId(e.target.value)}
-                  className="text-xs font-medium bg-transparent border-none outline-none text-stone-600 cursor-pointer w-full md:w-auto"
-                >
-                  <option value="all">All Chapters</option>
-                  {workChapters.sort((a, b) => a.order - b.order).map(chap => (
-                    <option key={chap.id} value={chap.id}>{chap.title}</option>
-                  ))}
-                </select>
-              </div>
+              {/* Filters Line */}
+              <div className="flex flex-col space-y-4 bg-stone-100/50 p-4 rounded-xl border border-stone-200/60">
+                {/* Chapter Multi-select */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mr-2 flex items-center">
+                    <Filter size={10} className="mr-1" /> Chapters
+                  </span>
+                  <button 
+                    onClick={() => setFilterChapterIds([])}
+                    className={cn(
+                      "px-3 py-1 text-xs rounded-full border transition-all",
+                      filterChapterIds.length === 0 
+                        ? "bg-stone-900 border-stone-900 text-white font-bold shadow-sm" 
+                        : "bg-white border-stone-200 text-stone-600 hover:border-stone-300"
+                    )}
+                  >
+                    All
+                  </button>
+                  {workChapters.sort((a, b) => a.order - b.order).map(chap => {
+                    const isSelected = filterChapterIds.includes(chap.id);
+                    return (
+                      <button
+                        key={chap.id}
+                        onClick={() => {
+                          setFilterChapterIds(prev => 
+                            prev.includes(chap.id) ? prev.filter(id => id !== chap.id) : [...prev, chap.id]
+                          );
+                        }}
+                        className={cn(
+                          "px-3 py-1 text-xs rounded-full border transition-all",
+                          isSelected 
+                            ? "bg-emerald-100 border-emerald-500 text-emerald-700 font-bold shadow-sm" 
+                            : "bg-white border-stone-200 text-stone-600 hover:border-stone-300"
+                        )}
+                      >
+                        {chap.title}
+                      </button>
+                    );
+                  })}
+                </div>
 
-              {/* Color Filter */}
-              <div className="flex items-center space-x-2 bg-white border border-stone-200 rounded-lg px-3 py-2 md:py-1.5 shadow-sm w-full md:w-auto hover:border-stone-300 transition-colors">
-                <div 
-                  className={cn(
-                    "w-3 h-3 rounded-full border border-black/10 shrink-0",
-                    filterColor === 'all' ? "bg-stone-200" : (filterColor === 'black' ? "bg-stone-900" : `bg-${filterColor === 'green' ? 'emerald' : (filterColor === 'yellow' ? 'amber' : (filterColor === 'brown' ? 'orange' : filterColor))}-400`)
-                  )} 
-                />
-                <select 
-                  value={filterColor}
-                  onChange={(e) => setFilterColor(e.target.value)}
-                  className="text-xs font-medium bg-transparent border-none outline-none text-stone-600 cursor-pointer w-full md:w-auto"
-                >
-                  <option value="all">All Colors</option>
-                  {Object.keys(LENS_COLORS).map(color => (
-                    <option key={color} value={color}>{color.charAt(0).toUpperCase() + color.slice(1)}</option>
-                  ))}
-                </select>
+                {/* Color Multi-select */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mr-2 flex items-center">
+                    <Layers size={10} className="mr-1" /> Colors
+                  </span>
+                  <button 
+                    onClick={() => setFilterColors([])}
+                    className={cn(
+                      "px-3 py-1 text-xs rounded-full border transition-all",
+                      filterColors.length === 0 
+                        ? "bg-stone-900 border-stone-900 text-white font-bold shadow-sm" 
+                        : "bg-white border-stone-200 text-stone-600 hover:border-stone-300"
+                    )}
+                  >
+                    All
+                  </button>
+                  {Object.keys(LENS_COLORS).map(color => {
+                    const isSelected = filterColors.includes(color);
+                    return (
+                      <button
+                        key={color}
+                        onClick={() => {
+                          setFilterColors(prev => 
+                            prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color]
+                          );
+                        }}
+                        className={cn(
+                          "group flex items-center space-x-2 px-3 py-1 text-xs rounded-full border transition-all",
+                          isSelected 
+                            ? "bg-white border-emerald-500 text-emerald-700 font-bold shadow-sm ring-1 ring-emerald-500/20" 
+                            : "bg-white border-stone-200 text-stone-600 hover:border-stone-300"
+                        )}
+                      >
+                        <div 
+                          className={cn(
+                            "w-2.5 h-2.5 rounded-full border border-black/10",
+                            color === 'red' && "bg-red-400",
+                            color === 'blue' && "bg-blue-400",
+                            color === 'green' && "bg-emerald-400",
+                            color === 'yellow' && "bg-amber-400",
+                            color === 'purple' && "bg-purple-400",
+                            color === 'brown' && "bg-orange-400",
+                            color === 'black' && "bg-stone-900"
+                          )} 
+                        />
+                        <span>{color.charAt(0).toUpperCase() + color.slice(1)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>

@@ -14,6 +14,14 @@ const LENS_COLORS = {
   black: 'bg-stone-900 border-stone-700 text-stone-100',
 };
 
+const SCENE_STATUS_COLORS: Record<string, { bg: string; border: string; text: string; dot: string; label: string }> = {
+  none: { bg: 'bg-white', border: 'border-stone-200', text: 'text-stone-900', dot: 'bg-stone-200', label: 'No Status' },
+  yellow: { bg: 'bg-amber-50/50', border: 'border-amber-200', text: 'text-amber-900', dot: 'bg-amber-400', label: 'Writing' },
+  green: { bg: 'bg-emerald-50/50', border: 'border-emerald-200', text: 'text-emerald-900', dot: 'bg-emerald-400', label: 'Finished' },
+  blue: { bg: 'bg-blue-50/50', border: 'border-blue-200', text: 'text-blue-900', dot: 'bg-blue-400', label: 'Modified' },
+  red: { bg: 'bg-red-50/50', border: 'border-red-200', text: 'text-red-900', dot: 'bg-red-400', label: 'Discarded' },
+};
+
 const AutoResizeTextarea = ({ value, onChange, className, placeholder, scrollContainerRef, searchTerm, blockId, ...props }: any) => {
   const ref = useRef<HTMLTextAreaElement>(null);
   
@@ -417,25 +425,56 @@ export function EditorPanel() {
             <div className="mb-12 space-y-4">
               <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider border-b border-stone-100 pb-2">Scenes in this Chapter</h3>
               {state.scenes.filter(s => s.chapterId === activeDocId).sort((a, b) => a.order - b.order).length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {state.scenes.filter(s => s.chapterId === activeDocId).sort((a, b) => a.order - b.order).map(scene => (
-                    <button
-                      key={scene.id}
-                      onClick={() => dispatch({ type: 'SET_ACTIVE_DOCUMENT', payload: scene.id })}
-                      className="flex items-center p-3 rounded-lg border border-stone-200 bg-white hover:border-emerald-300 hover:shadow-sm transition-all text-left group"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-stone-900 truncate group-hover:text-emerald-700 transition-colors">
-                          {scene.title || 'Untitled Scene'}
-                        </div>
-                        <div className="text-xs text-stone-500 mt-1 flex items-center">
-                          <FileText size={12} className="mr-1" />
-                          Scene {scene.order + 1}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {state.scenes.filter(s => s.chapterId === activeDocId).sort((a, b) => a.order - b.order).map(scene => {
+                    const status = SCENE_STATUS_COLORS[scene.statusColor || 'none'] || SCENE_STATUS_COLORS.none;
+                    return (
+                      <div
+                        key={scene.id}
+                        className={cn(
+                          "group relative flex flex-col rounded-xl border transition-all duration-300 hover:shadow-md",
+                          status.bg,
+                          status.border
+                        )}
+                      >
+                        <button
+                          onClick={() => dispatch({ type: 'SET_ACTIVE_DOCUMENT', payload: scene.id })}
+                          className="flex-1 p-4 text-left"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className={cn("w-2 h-2 rounded-full shrink-0", status.dot)} />
+                            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Scene {scene.order + 1}</span>
+                          </div>
+                          <div className={cn("text-sm font-semibold truncate mb-1", status.text)}>
+                            {scene.title || 'Untitled Scene'}
+                          </div>
+                          <div className="text-[10px] text-stone-500 flex items-center opacity-60">
+                            <FileText size={10} className="mr-1" />
+                            {state.blocks.filter(b => b.documentId === scene.id && b.type === 'text').reduce((acc, b) => acc + b.content.length, 0)} chars
+                          </div>
+                        </button>
+
+                        {/* Color Picker Overlay */}
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1 bg-white/80 backdrop-blur-sm p-1 rounded-full shadow-sm border border-stone-200">
+                          {Object.keys(SCENE_STATUS_COLORS).map(colorKey => (
+                            <button
+                              key={colorKey}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                dispatch({ type: 'UPDATE_SCENE', payload: { id: scene.id, statusColor: colorKey === 'none' ? undefined : colorKey } });
+                              }}
+                              className={cn(
+                                "w-3 h-3 rounded-full border border-black/5 transition-transform hover:scale-125",
+                                SCENE_STATUS_COLORS[colorKey].dot,
+                                (scene.statusColor || 'none') === colorKey && "ring-1 ring-offset-1 ring-stone-400"
+                              )}
+                              title={SCENE_STATUS_COLORS[colorKey].label}
+                            />
+                          ))}
                         </div>
                       </div>
-                      <ChevronRight size={16} className="text-stone-300 group-hover:text-emerald-500 transition-colors ml-2 shrink-0" />
-                    </button>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-sm text-stone-500 italic p-4 bg-stone-50 rounded-lg border border-stone-100 text-center">

@@ -4,6 +4,13 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { FileText, Folder, GripVertical, Plus, Trash2, Check, X } from 'lucide-react';
 import { cn } from '../lib/utils';
 
+const SCENE_STATUS_DOTS: Record<string, string> = {
+  yellow: 'bg-amber-400',
+  green: 'bg-emerald-400',
+  blue: 'bg-blue-400',
+  red: 'bg-red-400',
+};
+
 export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean) => void }) {
   const { state, dispatch } = useStore();
   const [viewMode, setViewMode] = useState<'outline' | 'default' | 'scenes'>('default');
@@ -207,6 +214,9 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
                       >
                         <div className="flex items-center flex-1 min-w-0">
                           <FileText size={12} className="mr-2 text-stone-400 shrink-0" />
+                          {scene.statusColor && (
+                            <div className={cn("w-1.5 h-1.5 rounded-full mr-2 shrink-0", SCENE_STATUS_DOTS[scene.statusColor])} />
+                          )}
                           <span className="whitespace-normal break-words text-xs md:text-sm">{scene.title}</span>
                         </div>
                         {renderDeleteButton(scene.id, () => dispatch({ type: 'DELETE_SCENE', payload: scene.id }), 12, "md:group-hover/scene:opacity-100")}
@@ -265,6 +275,9 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
                                   <span className="text-xs font-mono text-stone-400 mr-2 bg-stone-200 px-1.5 py-0.5 rounded">
                                     {chapIndexNum}-{sceneIndexNum}
                                   </span>
+                                  {scene.statusColor && (
+                                    <div className={cn("w-1.5 h-1.5 rounded-full mr-2 shrink-0", SCENE_STATUS_DOTS[scene.statusColor])} />
+                                  )}
                                   <span 
                                     className="flex-1 cursor-pointer whitespace-normal break-words text-xs md:text-sm"
                                     onClick={() => {

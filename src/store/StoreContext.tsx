@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 export type Work = { id: string; title: string; createdAt: number; order: number; characterFields?: CharacterFieldDef[]; lensesDescription?: string; icon?: string };
 export type Character = { id: string; workId: string; name: string; description: string; order: number; customFields?: Record<string, any> };
 export type Chapter = { id: string; workId: string; title: string; order: number; goalWordCount?: number; deadline?: string; completed?: boolean };
-export type Scene = { id: string; chapterId: string; title: string; order: number; characterIds: string[]; characterNotes?: Record<string, string> };
+export type Scene = { id: string; chapterId: string; title: string; order: number; characterIds: string[]; characterNotes?: Record<string, string>; statusColor?: string };
 export type Block = { id: string; documentId: string; type: 'text' | 'lens'; content: string; color?: string; order: number; notes?: string; linkedLensIds?: string[]; description?: string; completed?: boolean };
 
 export type CharacterFieldType = 'text' | 'number' | 'select' | 'multiselect';
@@ -55,7 +55,7 @@ type Action =
   | { type: 'UPDATE_CHAPTER_GOAL'; payload: { id: string; goalWordCount?: number; deadline?: string; completed?: boolean } }
   | { type: 'REORDER_CHAPTERS'; payload: { workId: string; startIndex: number; endIndex: number } }
   | { type: 'ADD_SCENE'; payload: { chapterId: string; title: string } }
-  | { type: 'UPDATE_SCENE'; payload: { id: string; title: string } }
+  | { type: 'UPDATE_SCENE'; payload: { id: string; title?: string; statusColor?: string } }
   | { type: 'REORDER_SCENES'; payload: { chapterId: string; startIndex: number; endIndex: number } }
   | { type: 'MOVE_SCENE'; payload: { sceneId: string; newChapterId: string; newIndex: number } }
   | { type: 'TOGGLE_SCENE_CHARACTER'; payload: { sceneId: string; characterId: string } }
@@ -337,7 +337,7 @@ function innerReducer(state: StoreState, action: Action): StoreState {
       };
     }
     case 'UPDATE_SCENE':
-      return { ...state, scenes: state.scenes.map(s => s.id === action.payload.id ? { ...s, title: action.payload.title } : s) };
+      return { ...state, scenes: state.scenes.map(s => s.id === action.payload.id ? { ...s, ...action.payload } : s) };
     case 'DELETE_SCENE': {
       const sceneId = action.payload;
       const blocksToDelete = state.blocks.filter(b => b.documentId === sceneId).map(b => b.id);
