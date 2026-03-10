@@ -50,7 +50,7 @@ export class WebDAVService {
 
   async testConnection(): Promise<boolean> {
     try {
-      const result = await this.callProxy('test');
+      const result = await this.callProxy('test', '/');
       return !!result?.success;
     } catch (error) {
       return false;
@@ -59,7 +59,8 @@ export class WebDAVService {
 
   async saveFile(filename: string, content: string): Promise<boolean> {
     try {
-      const result = await this.callProxy('put', filename, content);
+      const normalizedFilename = filename.startsWith('/') ? filename : `/${filename}`;
+      const result = await this.callProxy('put', normalizedFilename, content);
       return !!result?.success;
     } catch (error) {
       return false;
@@ -68,7 +69,8 @@ export class WebDAVService {
 
   async getFile(filename: string): Promise<string | null> {
     try {
-      const result = await this.callProxy('get', filename);
+      const normalizedFilename = filename.startsWith('/') ? filename : `/${filename}`;
+      const result = await this.callProxy('get', normalizedFilename);
       return result?.data || null;
     } catch (error) {
       return null;
