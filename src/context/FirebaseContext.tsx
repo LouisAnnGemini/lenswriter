@@ -1,10 +1,13 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, User, GoogleAuthProvider, signInWithPopup, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
 
 interface FirebaseContextType {
   user: User | null;
   isAuthReady: boolean;
+  signIn: (email?: string, password?: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined);
@@ -21,8 +24,25 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     return unsubscribe;
   }, []);
 
+  const signIn = async (email?: string, password?: string) => {
+    if (email && password) {
+      await signInWithEmailAndPassword(auth, email, password);
+    } else {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    }
+  };
+
+  const signUp = async (email: string, password: string) => {
+    await createUserWithEmailAndPassword(auth, email, password);
+  };
+
+  const signOutUser = async () => {
+    await signOut(auth);
+  };
+
   return (
-    <FirebaseContext.Provider value={{ user, isAuthReady }}>
+    <FirebaseContext.Provider value={{ user, isAuthReady, signIn, signUp, signOut: signOutUser }}>
       {children}
     </FirebaseContext.Provider>
   );

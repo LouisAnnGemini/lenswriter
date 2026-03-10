@@ -1,16 +1,10 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/StoreContext';
-import { Edit3, Layers, Users, Maximize2, Minimize2, Menu, ChevronLeft, FileText, MessageSquare, MessageSquareOff, Eye, LogIn, LogOut } from 'lucide-react';
+import { Edit3, Layers, Users, Maximize2, Minimize2, Menu, ChevronLeft, FileText, MessageSquare, MessageSquareOff, Eye } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { useFirebase } from '../context/FirebaseContext';
-import { signOut } from 'firebase/auth';
-import { auth } from '../firebase';
-import { AuthModal } from './AuthModal';
 
 export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => void }) {
   const { state, dispatch } = useStore();
-  const { user } = useFirebase();
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   if (state.focusMode) return null;
 
@@ -23,7 +17,6 @@ export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => v
 
   return (
     <>
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
       {/* Desktop Top Nav */}
       <div className="h-14 border-b border-stone-200 bg-white flex items-center justify-between px-4 md:px-6 shrink-0">
         <div className="flex items-center">
@@ -66,19 +59,6 @@ export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => v
         </div>
 
         <div className="flex items-center space-x-2">
-          <button
-            onClick={() => {
-              if (user) {
-                signOut(auth).catch(console.error);
-              } else {
-                setIsAuthModalOpen(true);
-              }
-            }}
-            className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md transition-colors"
-            title={user ? "Sign Out" : "Sign In"}
-          >
-            {user ? <LogOut size={18} /> : <LogIn size={18} />}
-          </button>
           <button
             onClick={() => dispatch({ type: 'TOGGLE_DISGUISE_MODE' })}
             className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md transition-colors hidden md:block"

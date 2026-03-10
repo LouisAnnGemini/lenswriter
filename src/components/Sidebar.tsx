@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/StoreContext';
-import { Book, Plus, ChevronLeft, ChevronRight, Download, Upload, Trash2, Edit2, GripVertical, Check, X, Menu, Network, Save, Clock } from 'lucide-react';
+import { useFirebase } from '../context/FirebaseContext';
+import { Book, Plus, ChevronLeft, ChevronRight, Download, Upload, Trash2, Edit2, GripVertical, Check, X, Menu, LogIn, LogOut, Save, Clock } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { cn } from '../lib/utils';
 import { WorkIcon } from './WorkIcon';
@@ -9,7 +10,8 @@ import { BackupManager } from './BackupManager';
 
 export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, setMobileOpen?: (open: boolean) => void }) {
   const { state, dispatch } = useStore();
-  const [collapsed, setCollapsed] = useState(false);
+  const { user, signIn, signOut } = useFirebase();
+  const [collapsed, setCollapsed] = useState(true);
   const [newWorkTitle, setNewWorkTitle] = useState('');
   const [editingWorkId, setEditingWorkId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -256,43 +258,73 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
         </DragDropContext>
       </div>
 
-      {!collapsed && (
-        <div className="p-4 border-t border-stone-800 space-y-4">
-          <div className="relative">
-            <Plus size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" />
-            <input
-              type="text"
-              placeholder="New Work..."
-              value={newWorkTitle}
-              onChange={e => setNewWorkTitle(e.target.value)}
-              onKeyDown={handleAddWork}
-              className="w-full bg-stone-800 text-stone-200 text-sm rounded-md pl-9 pr-3 py-2 outline-none focus:ring-1 focus:ring-emerald-500 placeholder:text-stone-500"
-            />
+      <div className="mt-auto border-t border-stone-800">
+        {!collapsed && (
+          <div className="p-4 space-y-4">
+            <div className="relative">
+              <Plus size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" />
+              <input
+                type="text"
+                placeholder="New Work..."
+                value={newWorkTitle}
+                onChange={e => setNewWorkTitle(e.target.value)}
+                onKeyDown={handleAddWork}
+                className="w-full bg-stone-800 text-stone-200 text-sm rounded-md pl-9 pr-3 py-2 outline-none focus:ring-1 focus:ring-emerald-500 placeholder:text-stone-500"
+              />
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={handleExport}
+                className="flex-1 flex items-center justify-center py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-md text-xs font-medium transition-colors"
+                title="Export Data"
+              >
+                <Upload size={14} className="mr-2" />
+                Export
+              </button>
+              <label className="flex-1 flex items-center justify-center py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-md text-xs font-medium transition-colors cursor-pointer" title="Import Data">
+                <Download size={14} className="mr-2" />
+                Import
+                <input type="file" accept=".json" onChange={handleImport} className="hidden" />
+              </label>
+              <button
+                onClick={() => setShowBackupManager(true)}
+                className="flex items-center justify-center p-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-md text-xs font-medium transition-colors"
+                title="Local Backups"
+              >
+                <Save size={14} />
+              </button>
+            </div>
           </div>
-          <div className="flex space-x-2">
+        )}
+        
+        <div className="p-2 border-t border-stone-800">
+          {user ? (
             <button
-              onClick={handleExport}
-              className="flex-1 flex items-center justify-center py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-md text-xs font-medium transition-colors"
-              title="Export Data"
+              onClick={signOut}
+              className={cn(
+                "flex items-center w-full px-4 py-2 text-sm font-medium rounded-md transition-colors text-stone-400 hover:bg-stone-800 hover:text-stone-200",
+                collapsed && "justify-center px-0"
+              )}
+              title="Sign Out"
             >
-              <Upload size={14} className="mr-2" />
-              Export
+              <LogOut size={16} className={cn("shrink-0", !collapsed && "mr-3")} />
+              {!collapsed && <span>Sign Out</span>}
             </button>
-            <label className="flex-1 flex items-center justify-center py-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-md text-xs font-medium transition-colors cursor-pointer" title="Import Data">
-              <Download size={14} className="mr-2" />
-              Import
-              <input type="file" accept=".json" onChange={handleImport} className="hidden" />
-            </label>
+          ) : (
             <button
-              onClick={() => setShowBackupManager(true)}
-              className="flex items-center justify-center p-2 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded-md text-xs font-medium transition-colors"
-              title="Local Backups"
+              onClick={signIn}
+              className={cn(
+                "flex items-center w-full px-4 py-2 text-sm font-medium rounded-md transition-colors text-emerald-400 hover:bg-emerald-500/10",
+                collapsed && "justify-center px-0"
+              )}
+              title="Sign In"
             >
-              <Save size={14} />
+              <LogIn size={16} className={cn("shrink-0", !collapsed && "mr-3")} />
+              {!collapsed && <span>Sign In</span>}
             </button>
-          </div>
+          )}
         </div>
-      )}
+      </div>
       
       {showBackupManager && (
         <BackupManager onClose={() => setShowBackupManager(false)} />

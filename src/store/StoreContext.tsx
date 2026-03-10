@@ -767,6 +767,15 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, [user, dispatch]);
 
   useEffect(() => {
+    // Always save to localStorage
+    try {
+      const { past, future, ...stateToSave } = state;
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
+    } catch (e) {
+      console.error("Failed to save to local storage", e);
+    }
+
+    // Sync to Firebase if user is logged in
     if (user) {
       if (!isLoadedRef.current) return; // Don't save until initial data is loaded
       
@@ -775,15 +784,7 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       setDoc(docRef, stateToSave).catch(error => {
         console.error("Firestore save error:", error);
-        // Here you would ideally call a handleFirestoreError function
       });
-    } else {
-      try {
-        const { past, future, ...stateToSave } = state;
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
-      } catch (e) {
-        console.error("Failed to save to local storage", e);
-      }
     }
   }, [state, user]);
 
