@@ -1,46 +1,76 @@
-import { createClient, WebDAVClient } from 'webdav';
-
 export class WebDAVService {
-  private client: WebDAVClient | null = null;
+  private url?: string;
+  private username?: string;
+  private password?: string;
 
   constructor(url?: string, username?: string, password?: string) {
-    if (url && username && password) {
-      this.client = createClient(url, {
-        username,
-        password,
+    this.url = url;
+    this.username = username;
+    this.password = password;
+  }
+
+  private async callProxy(method: string, filename?: string, content?: string) {
+    if (!this.url || !this.username || !this.password) return null;
+
+    try {
+      const response = await fetch('/api/webdav/proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: this.url,
+          username: this.username,
+          password: this.password,
+          method,
+          filename,
+          content
+        })
       });
+
+      const contentType = response.headers.get('content-type');
+      if (!response.ok) {
+        if (contentType && contentType.includes('application/json')) {
+          const err = await response.json();
+          throw new Error(err.error || 'Proxy request failed');
+        } else {
+          const text = await response.text();
+          throw new Error(`Proxy request failed with status ${response.status}: ${text.slice(0, 100)}`);
+        }
+      }
+
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      } else {
+        throw new Error('Proxy returned non-JSON response');
+      }
+    } catch (error) {
+      console.error(`WebDAV Proxy ${method} failed:`, error);
+      throw error;
     }
   }
 
   async testConnection(): Promise<boolean> {
-    if (!this.client) return false;
     try {
-      await this.client.getDirectoryContents('/');
-      return true;
+      const result = await this.callProxy('test');
+      return !!result?.success;
     } catch (error) {
-      console.error('WebDAV connection failed:', error);
       return false;
     }
   }
 
   async saveFile(filename: string, content: string): Promise<boolean> {
-    if (!this.client) return false;
     try {
-      await this.client.putFileContents(filename, content);
-      return true;
+      const result = await this.callProxy('put', filename, content);
+      return !!result?.success;
     } catch (error) {
-      console.error('WebDAV save failed:', error);
       return false;
     }
   }
 
   async getFile(filename: string): Promise<string | null> {
-    if (!this.client) return null;
     try {
-      const content = await this.client.getFileContents(filename, { format: 'text' });
-      return content as string;
+      const result = await this.callProxy('get', filename);
+      return result?.data || null;
     } catch (error) {
-      console.error('WebDAV load failed:', error);
       return null;
     }
   }

@@ -32,10 +32,26 @@ export function WebDAVSettings({ onClose }: { onClose: () => void }) {
   const testConnection = async () => {
     setTesting(true);
     setTestResult(null);
-    const service = new WebDAVService(url, username, password);
-    const success = await service.testConnection();
-    setTestResult(success ? 'success' : 'error');
-    setTesting(false);
+    
+    // Safety timeout in UI
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout')), 20000)
+    );
+
+    try {
+      const service = new WebDAVService(url, username, password);
+      const success = await Promise.race([
+        service.testConnection(),
+        timeoutPromise
+      ]) as boolean;
+      
+      setTestResult(success ? 'success' : 'error');
+    } catch (error) {
+      console.error('Test connection error:', error);
+      setTestResult('error');
+    } finally {
+      setTesting(false);
+    }
   };
 
   const manualSyncToCloud = async () => {

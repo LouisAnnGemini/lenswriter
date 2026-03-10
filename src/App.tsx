@@ -9,6 +9,7 @@ import { CharactersTab } from './components/CharactersTab';
 import { DeadlineTab } from './components/DeadlineTab';
 import { CompileTab } from './components/CompileTab';
 import { AuthModal } from './components/AuthModal';
+import { BackupProvider } from './context/BackupContext';
 import { Minimize2, MessageSquare, MessageSquareOff, EyeOff, Eye } from 'lucide-react';
 import { cn } from './lib/utils';
 
@@ -111,8 +112,6 @@ function Layout() {
     </div>
   );
 }
-
-import { BackupProvider } from './context/BackupContext';
 
 export default function App() {
   return (
