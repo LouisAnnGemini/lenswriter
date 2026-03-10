@@ -749,13 +749,15 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     
     const docRef = doc(db, 'users', user.uid, 'data', 'state');
     
-    // Fetch initial data
-    getDoc(docRef).then(docSnap => {
+    // Set up real-time listener
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         dispatch({ type: 'IMPORT_DATA', payload: docSnap.data() as StoreState });
       }
     });
-  }, [user]);
+
+    return () => unsubscribe();
+  }, [user, dispatch]);
 
   useEffect(() => {
     if (user) {
