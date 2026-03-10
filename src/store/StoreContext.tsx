@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useEffect, useState, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useFirebase } from '../context/FirebaseContext';
 import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
@@ -744,6 +744,9 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [state, dispatch] = useReducer(storeReducer, initialState, initializer);
   const { user } = useFirebase();
 
+  const [isLoaded, setIsLoaded] = useState(false);
+  const isLoadedRef = useRef(false);
+
   useEffect(() => {
     if (!user) return;
     
@@ -754,6 +757,10 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       if (docSnap.exists()) {
         dispatch({ type: 'IMPORT_DATA', payload: docSnap.data() as StoreState });
       }
+      isLoadedRef.current = true;
+      setIsLoaded(true);
+    }, (error) => {
+      console.error("Firestore listener error:", error);
     });
 
     return () => unsubscribe();
@@ -761,9 +768,15 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   useEffect(() => {
     if (user) {
+      if (!isLoadedRef.current) return; // Don't save until initial data is loaded
+      
       const docRef = doc(db, 'users', user.uid, 'data', 'state');
       const { past, future, ...stateToSave } = state;
-      setDoc(docRef, stateToSave);
+      
+      setDoc(docRef, stateToSave).catch(error => {
+        console.error("Firestore save error:", error);
+        // Here you would ideally call a handleFirestoreError function
+      });
     } else {
       try {
         const { past, future, ...stateToSave } = state;
