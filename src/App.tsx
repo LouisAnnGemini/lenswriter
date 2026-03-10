@@ -8,10 +8,11 @@ import { LensesTab } from './components/LensesTab';
 import { CharactersTab } from './components/CharactersTab';
 import { DeadlineTab } from './components/DeadlineTab';
 import { CompileTab } from './components/CompileTab';
+import { AuthModal } from './components/AuthModal';
 import { Minimize2, MessageSquare, MessageSquareOff, EyeOff, Eye } from 'lucide-react';
 import { cn } from './lib/utils';
 
-function MainContent({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, setMobileOpen: (open: boolean) => void }) {
+function MainContent({ mobileOpen, setMobileOpen, onSignIn }: { mobileOpen: boolean, setMobileOpen: (open: boolean) => void, onSignIn: () => void }) {
   const { state, dispatch } = useStore();
 
   React.useEffect(() => {
@@ -27,7 +28,7 @@ function MainContent({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, setMo
 
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden bg-white relative">
-      {!state.disguiseMode && <TopNav setMobileOpen={setMobileOpen} />}
+      {!state.disguiseMode && <TopNav setMobileOpen={setMobileOpen} onSignIn={onSignIn} />}
       <div className="flex-1 flex overflow-hidden">
         {state.activeTab === 'writing' && (
           <>
@@ -90,11 +91,23 @@ function MainContent({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, setMo
 function Layout() {
   const { state } = useStore();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [showAuthModal, setShowAuthModal] = React.useState(false);
 
   return (
     <div className="flex h-screen w-full overflow-hidden font-sans text-stone-900 bg-stone-900 selection:bg-emerald-200 selection:text-emerald-900">
-      {!state.disguiseMode && <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />}
-      <MainContent mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+      {!state.disguiseMode && (
+        <Sidebar 
+          mobileOpen={mobileOpen} 
+          setMobileOpen={setMobileOpen} 
+          onSignIn={() => setShowAuthModal(true)} 
+        />
+      )}
+      <MainContent 
+        mobileOpen={mobileOpen} 
+        setMobileOpen={setMobileOpen} 
+        onSignIn={() => setShowAuthModal(true)} 
+      />
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
   );
 }

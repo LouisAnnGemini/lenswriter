@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/StoreContext';
-import { Edit3, Layers, Users, Maximize2, Minimize2, Menu, ChevronLeft, FileText, MessageSquare, MessageSquareOff, Eye } from 'lucide-react';
+import { useFirebase } from '../context/FirebaseContext';
+import { Edit3, Layers, Users, Maximize2, Minimize2, Menu, ChevronLeft, FileText, MessageSquare, MessageSquareOff, Eye, LogIn, LogOut, Cloud } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { WebDAVSettings } from './WebDAVSettings';
 
-export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => void }) {
+export function TopNav({ setMobileOpen, onSignIn }: { setMobileOpen?: (open: boolean) => void, onSignIn: () => void }) {
   const { state, dispatch } = useStore();
+  const { user, signOut } = useFirebase();
+  const [showWebDAVSettings, setShowWebDAVSettings] = useState(false);
 
   if (state.focusMode) return null;
 
@@ -53,7 +57,7 @@ export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => v
               </button>
             ))}
           </div>
-          <div className="md:hidden font-semibold text-stone-900">
+          <div className="md:hidden absolute left-1/2 -translate-x-1/2 font-semibold text-stone-900 truncate max-w-[60%]">
             {state.works.find(w => w.id === state.activeWorkId)?.title || 'LensWriter'}
           </div>
         </div>
@@ -85,6 +89,33 @@ export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => v
           >
             {state.focusMode ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
           </button>
+
+          <div className="md:hidden flex items-center">
+            <button
+              onClick={() => setShowWebDAVSettings(true)}
+              className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md transition-colors mr-1"
+              title="WebDAV Sync"
+            >
+              <Cloud size={18} />
+            </button>
+            {user ? (
+              <button
+                onClick={signOut}
+                className="p-2 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                title="Sign Out"
+              >
+                <LogOut size={18} />
+              </button>
+            ) : (
+              <button
+                onClick={onSignIn}
+                className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"
+                title="Sign In"
+              >
+                <LogIn size={18} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -106,6 +137,10 @@ export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => v
           </button>
         ))}
       </div>
+
+      {showWebDAVSettings && (
+        <WebDAVSettings onClose={() => setShowWebDAVSettings(false)} />
+      )}
     </>
   );
 }

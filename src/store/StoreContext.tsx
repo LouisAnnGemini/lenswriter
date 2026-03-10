@@ -21,6 +21,15 @@ export type Deadline = {
   completed: boolean;
 };
 
+export type WebDAVConfig = {
+  url: string;
+  username: string;
+  password?: string;
+  filename: string;
+  autoSync: boolean;
+  lastSync?: number;
+};
+
 export type StoreState = {
   works: Work[];
   characters: Character[];
@@ -35,6 +44,7 @@ export type StoreState = {
   focusMode: boolean;
   disguiseMode: boolean;
   showDescriptions: boolean;
+  webdavConfig?: WebDAVConfig;
   past?: StoreState[];
   future?: StoreState[];
 };
@@ -82,6 +92,9 @@ type Action =
   | { type: 'ADD_DEADLINE'; payload: { workId: string; title: string; date: string } }
   | { type: 'UPDATE_DEADLINE'; payload: { id: string; title?: string; date?: string; completed?: boolean } }
   | { type: 'DELETE_DEADLINE'; payload: string }
+  | { type: 'UPDATE_WEBDAV_CONFIG'; payload: Partial<WebDAVConfig> }
+  | { type: 'SET_WEBDAV_SYNC_TIME'; payload: number }
+  | { type: 'RESET_DATA' }
   | { type: 'BULK_UPDATE_BLOCKS'; payload: { id: string; content: string }[] };
 
 const initialWorkId = uuidv4();
@@ -585,6 +598,14 @@ function innerReducer(state: StoreState, action: Action): StoreState {
     case 'IMPORT_DATA': {
       return action.payload;
     }
+    case 'RESET_DATA': {
+      return {
+        ...initialState,
+        works: [{ id: uuidv4(), title: 'My First Work', icon: 'book', order: 0, createdAt: Date.now() }],
+        activeWorkId: null,
+        activeDocumentId: null,
+      };
+    }
     case 'ADD_CHARACTER_FIELD': {
       return {
         ...state,
@@ -649,6 +670,21 @@ function innerReducer(state: StoreState, action: Action): StoreState {
         deadlines: (state.deadlines || []).filter(d => d.id !== action.payload)
       };
     }
+    case 'UPDATE_WEBDAV_CONFIG': {
+      return {
+        ...state,
+        webdavConfig: {
+          ...(state.webdavConfig || { url: '', username: '', filename: 'lenswriter_backup.json', autoSync: false }),
+          ...action.payload
+        }
+      };
+    }
+    case 'SET_WEBDAV_SYNC_TIME': {
+      return {
+        ...state,
+        webdavConfig: state.webdavConfig ? { ...state.webdavConfig, lastSync: action.payload } : undefined
+      };
+    }
     default:
       return state;
   }
@@ -694,7 +730,8 @@ function storeReducer(state: StoreState, action: Action): StoreState {
     action.type === 'SET_ACTIVE_LENS' ||
     action.type === 'TOGGLE_FOCUS_MODE' ||
     action.type === 'TOGGLE_DISGUISE_MODE' ||
-    action.type === 'TOGGLE_SHOW_DESCRIPTIONS';
+    action.type === 'TOGGLE_SHOW_DESCRIPTIONS' ||
+    action.type === 'SET_WEBDAV_SYNC_TIME';
 
   if (isEphemeralAction) {
     return {
@@ -748,7 +785,14 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const isLoadedRef = useRef(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      if (isLoadedRef.current) {
+        dispatch({ type: 'RESET_DATA' });
+        isLoadedRef.current = false;
+        setIsLoaded(false);
+      }
+      return;
+    }
     
     const docRef = doc(db, 'users', user.uid, 'data', 'state');
     
@@ -787,6 +831,35 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       });
     }
   }, [state, user]);
+
+  // WebDAV Auto-sync
+  useEffect(() => {
+    const config = state.webdavConfig;
+    if (!config || !config.autoSync || !config.url || !config.username || !config.password) return;
+
+    const timeoutId = setTimeout(async () => {
+      const { past, future, ...stateToSave } = state;
+      const stateStr = JSON.stringify(stateToSave);
+      
+      // Check if state actually changed since last sync to avoid redundant requests
+      // We can use a simple hash or just compare with a ref
+      const service = new (await import('../services/webdavService')).WebDAVService(
+        config.url, 
+        config.username, 
+        config.password
+      );
+      
+      const success = await service.saveFile(config.filename, stateStr);
+      if (success) {
+        console.log('Auto-synced to WebDAV');
+        // We don't dispatch SET_WEBDAV_SYNC_TIME here to avoid re-triggering this effect
+        // unless we want to show the last sync time in UI. 
+        // If we do, we must ensure it doesn't loop.
+      }
+    }, 5000); // Debounce sync by 5 seconds
+
+    return () => clearTimeout(timeoutId);
+  }, [state.works, state.chapters, state.scenes, state.blocks, state.characters, state.deadlines, state.webdavConfig?.autoSync]);
 
   return <StoreContext.Provider value={{ state, dispatch }}>{children}</StoreContext.Provider>;
 };

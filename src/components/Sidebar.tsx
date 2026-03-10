@@ -1,24 +1,24 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/StoreContext';
 import { useFirebase } from '../context/FirebaseContext';
-import { Book, Plus, ChevronLeft, ChevronRight, Download, Upload, Trash2, Edit2, GripVertical, Check, X, Menu, LogIn, LogOut, Save, Clock } from 'lucide-react';
+import { Book, Plus, ChevronLeft, ChevronRight, Download, Upload, Trash2, Edit2, GripVertical, Check, X, Menu, LogIn, LogOut, Save, Clock, Cloud } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { cn } from '../lib/utils';
 import { WorkIcon } from './WorkIcon';
 import { WorkIconPicker } from './WorkIconPicker';
 import { BackupManager } from './BackupManager';
-import { AuthModal } from './AuthModal';
+import { WebDAVSettings } from './WebDAVSettings';
 
-export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, setMobileOpen?: (open: boolean) => void }) {
+export function Sidebar({ mobileOpen, setMobileOpen, onSignIn }: { mobileOpen?: boolean, setMobileOpen?: (open: boolean) => void, onSignIn: () => void }) {
   const { state, dispatch } = useStore();
-  const { user, signIn, signOut } = useFirebase();
+  const { user, signOut } = useFirebase();
   const [collapsed, setCollapsed] = useState(true);
   const [newWorkTitle, setNewWorkTitle] = useState('');
   const [editingWorkId, setEditingWorkId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [deletingWorkId, setDeletingWorkId] = useState<string | null>(null);
   const [showBackupManager, setShowBackupManager] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showWebDAVSettings, setShowWebDAVSettings] = useState(false);
 
   if (state.focusMode) return null;
 
@@ -94,12 +94,12 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
 
       <div className={cn(
         "h-screen bg-stone-900 text-stone-300 flex flex-col transition-all duration-300 border-r border-stone-800 z-50",
-        collapsed ? "w-16" : "w-64",
+        collapsed ? "md:w-16 w-64" : "w-64",
         "fixed md:relative", // Fixed on mobile, relative on desktop
         mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0" // Slide in on mobile
       )}>
         <div className="p-4 flex items-center justify-between border-b border-stone-800">
-          {!collapsed && <span className="font-semibold text-stone-100 tracking-wide uppercase text-sm">Works</span>}
+          <span className={cn("font-semibold text-stone-100 tracking-wide uppercase text-sm", collapsed ? "md:hidden" : "block")}>Works</span>
           <button 
             onClick={() => setCollapsed(!collapsed)}
             className="p-1 hover:bg-stone-800 rounded-md text-stone-400 hover:text-stone-100 transition-colors hidden md:block"
@@ -128,8 +128,8 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
                 : "text-stone-400 hover:bg-stone-800 hover:text-stone-200"
             )}
           >
-            <Clock size={16} className={cn("shrink-0", collapsed ? "mx-auto" : "mr-3")} />
-            {!collapsed && <span>Deadline</span>}
+            <Clock size={16} className={cn("shrink-0", collapsed ? "md:mx-auto mr-3" : "mr-3")} />
+            <span className={cn(collapsed && "md:hidden")}>Deadline</span>
           </button>
         </div>
         
@@ -156,7 +156,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
                           {...provided.dragHandleProps} 
                           className={cn(
                             "mr-2 text-stone-600 opacity-0 group-hover:opacity-100 cursor-grab",
-                            collapsed && "hidden"
+                            collapsed ? "md:hidden" : "block"
                           )}
                         >
                           <GripVertical size={14} />
@@ -171,12 +171,24 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
                         >
                           <div 
                             onClick={(e) => !collapsed && e.stopPropagation()} 
-                            className={cn("shrink-0", collapsed ? "mx-auto" : "mr-3")}
+                            className={cn("shrink-0", collapsed ? "md:mx-auto mr-3" : "mr-3")}
                           >
                             {collapsed ? (
-                              <div className="hover:opacity-80 transition-opacity">
-                                <WorkIcon icon={work.icon} size={16} />
-                              </div>
+                              <>
+                                <div className="hover:opacity-80 transition-opacity md:block hidden">
+                                  <WorkIcon icon={work.icon} size={16} />
+                                </div>
+                                <div className="md:hidden">
+                                  <WorkIconPicker 
+                                    currentIcon={work.icon} 
+                                    onSelect={(icon) => dispatch({ type: 'UPDATE_WORK', payload: { id: work.id, icon } })}
+                                  >
+                                    <div className="hover:opacity-80 transition-opacity">
+                                      <WorkIcon icon={work.icon} size={16} />
+                                    </div>
+                                  </WorkIconPicker>
+                                </div>
+                              </>
                             ) : (
                               <WorkIconPicker 
                                 currentIcon={work.icon} 
@@ -188,8 +200,8 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
                               </WorkIconPicker>
                             )}
                           </div>
-                          {!collapsed && (
-                            editingWorkId === work.id ? (
+                          <div className={cn("flex-1 min-w-0", collapsed ? "md:hidden" : "block")}>
+                            {editingWorkId === work.id ? (
                               <input
                                 autoFocus
                                 value={editTitle}
@@ -200,7 +212,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
                                 }}
                                 onBlur={() => handleRenameWork(work.id)}
                                 onClick={e => e.stopPropagation()}
-                                className="flex-1 bg-stone-700 text-stone-100 px-2 py-0.5 rounded outline-none ring-1 ring-emerald-500"
+                                className="flex-1 bg-stone-700 text-stone-100 px-2 py-0.5 rounded outline-none ring-1 ring-emerald-500 w-full"
                               />
                             ) : deletingWorkId === work.id ? (
                               <div className="flex items-center space-x-2" onClick={e => e.stopPropagation()}>
@@ -219,13 +231,16 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
                                 </button>
                               </div>
                             ) : (
-                              <span className="truncate">{work.title}</span>
-                            )
-                          )}
+                              <span className="truncate block">{work.title}</span>
+                            )}
+                          </div>
                         </div>
 
-                        {!collapsed && !editingWorkId && !deletingWorkId && (
-                          <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                        {(!collapsed || true) && !editingWorkId && !deletingWorkId && (
+                          <div className={cn(
+                            "flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2",
+                            collapsed ? "md:hidden" : "flex"
+                          )}>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -299,7 +314,18 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
           </div>
         )}
         
-        <div className="p-2 border-t border-stone-800">
+        <div className="p-2 border-t border-stone-800 hidden md:block">
+          <button
+            onClick={() => setShowWebDAVSettings(true)}
+            className={cn(
+              "flex items-center w-full px-4 py-2 text-sm font-medium rounded-md transition-colors text-stone-400 hover:bg-stone-800 hover:text-stone-200 mb-1",
+              collapsed && "justify-center px-0"
+            )}
+            title="WebDAV Cloud Sync"
+          >
+            <Cloud size={16} className={cn("shrink-0", !collapsed && "mr-3")} />
+            {!collapsed && <span>Cloud Sync</span>}
+          </button>
           {user ? (
             <button
               onClick={signOut}
@@ -314,15 +340,15 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
             </button>
           ) : (
             <button
-              onClick={() => setShowAuthModal(true)}
+              onClick={onSignIn}
               className={cn(
                 "flex items-center w-full px-4 py-2 text-sm font-medium rounded-md transition-colors text-emerald-400 hover:bg-emerald-500/10",
-                collapsed && "justify-center px-0"
+                collapsed && "md:justify-center px-0"
               )}
               title="Sign In"
             >
               <LogIn size={16} className={cn("shrink-0", !collapsed && "mr-3")} />
-              {!collapsed && <span>Sign In</span>}
+              <span className={cn(collapsed && "md:hidden")}>Sign In</span>
             </button>
           )}
         </div>
@@ -331,8 +357,10 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
       {showBackupManager && (
         <BackupManager onClose={() => setShowBackupManager(false)} />
       )}
-
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      
+      {showWebDAVSettings && (
+        <WebDAVSettings onClose={() => setShowWebDAVSettings(false)} />
+      )}
     </div>
     </>
   );

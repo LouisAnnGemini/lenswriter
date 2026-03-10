@@ -106,7 +106,7 @@ const AutoResizeTextarea = ({ value, onChange, className, placeholder, scrollCon
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className={cn("overflow-hidden resize-none relative z-10 bg-transparent w-full", className)}
+        className={cn("overflow-hidden resize-none relative z-10 bg-transparent w-full break-words", className)}
         rows={1}
         {...props}
       />
@@ -301,7 +301,7 @@ export function EditorPanel() {
         <div 
           ref={scrollContainerRef}
         className={cn(
-        "flex-1 overflow-y-auto pb-32 md:pb-12 transition-all duration-300",
+        "flex-1 overflow-y-auto overflow-x-hidden pb-32 md:pb-12 transition-all duration-300",
         isFocusMode 
           ? "px-4 py-8 md:px-8 md:py-12 lg:px-24 xl:px-48" 
           : "px-4 py-8 md:px-8 md:py-12 lg:px-12 xl:px-16"
@@ -764,6 +764,11 @@ export function EditorPanel() {
                         <CheckCircle2 size={16} />
                       </button>
                     </div>
+                  )}
+
+                  {/* Spacer for Lens Blocks to maintain consistent width with Text Blocks */}
+                  {block.type === 'lens' && !state.disguiseMode && !isArchived && (
+                    <div className="w-8 shrink-0" aria-hidden="true" />
                   )}
                 </div>
               </div>
