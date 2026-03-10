@@ -64,7 +64,17 @@ export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => v
 
         <div className="flex items-center space-x-2">
           <button
-            onClick={() => user ? signOut(auth) : signInWithPopup(auth, new GoogleAuthProvider())}
+            onClick={() => {
+              if (user) {
+                signOut(auth).catch(console.error);
+              } else {
+                signInWithPopup(auth, new GoogleAuthProvider()).catch((error: any) => {
+                  if (error.code !== 'auth/popup-closed-by-user') {
+                    console.error('Authentication error:', error);
+                  }
+                });
+              }
+            }}
             className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md transition-colors"
             title={user ? "Sign Out" : "Sign In"}
           >
