@@ -9,7 +9,7 @@ const LENS_COLORS = {
   green: 'bg-emerald-50/80 border-emerald-200 text-emerald-900 hover:bg-emerald-50',
   yellow: 'bg-amber-50/80 border-amber-200 text-amber-900 hover:bg-amber-50',
   purple: 'bg-purple-50/80 border-purple-200 text-purple-900 hover:bg-purple-50',
-  brown: 'bg-orange-200 border-orange-200 text-orange-900 hover:bg-orange-200',
+  orange: 'bg-orange-200 border-orange-200 text-orange-900 hover:bg-orange-200',
   black: 'bg-stone-900 border-stone-700 text-stone-100 hover:bg-stone-800',
 };
 
@@ -240,7 +240,7 @@ export function LensesTab() {
                             color === 'green' && "bg-emerald-400",
                             color === 'yellow' && "bg-amber-400",
                             color === 'purple' && "bg-purple-400",
-                            color === 'brown' && "bg-orange-400",
+                            color === 'orange' && "bg-orange-400",
                             color === 'black' && "bg-stone-900"
                           )} 
                         />
@@ -524,7 +524,7 @@ export function LensesTab() {
                             color === 'green' && "bg-emerald-400",
                             color === 'yellow' && "bg-amber-400",
                             color === 'purple' && "bg-purple-400",
-                            color === 'brown' && "bg-orange-400",
+                            color === 'orange' && "bg-orange-400",
                             color === 'black' && "bg-stone-900",
                             lens.color === color && "ring-2 ring-offset-2 ring-stone-400"
                           )}
