@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/StoreContext';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { FileText, Folder, GripVertical, Plus, Trash2, Check, X } from 'lucide-react';
+import { FileText, Folder, GripVertical, Plus, Trash2, Check, X, Archive, ArchiveRestore, Eye, EyeOff } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const SCENE_STATUS_DOTS: Record<string, string> = {
@@ -15,13 +15,16 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
   const { state, dispatch } = useStore();
   const [viewMode, setViewMode] = useState<'outline' | 'default' | 'scenes'>('default');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   if (state.focusMode) return null;
 
   const activeWorkId = state.activeWorkId;
   if (!activeWorkId) return <div className="w-full md:w-64 border-r border-stone-200 bg-stone-50 p-4 text-stone-500 text-sm">Select a work</div>;
 
-  const chapters = state.chapters.filter(c => c.workId === activeWorkId).sort((a, b) => a.order - b.order);
+  const allChapters = state.chapters.filter(c => c.workId === activeWorkId).sort((a, b) => a.order - b.order);
+  const hasArchived = allChapters.some(c => c.isArchived);
+  const chapters = allChapters.filter(c => showArchived || !c.isArchived);
   const scenes = state.scenes.filter(s => chapters.some(c => c.id === s.chapterId));
 
   const handleDragEnd = (result: DropResult) => {
@@ -101,22 +104,24 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
       state.activeDocumentId ? "hidden md:flex w-72" : "w-full md:w-72"
     )}>
       <div className="p-4 border-b border-stone-200">
-        <div className="flex bg-stone-200/50 p-1 rounded-lg">
-          {(['outline', 'default', 'scenes'] as const).map(mode => (
-            <button
-              key={mode}
-              onClick={() => setViewMode(mode)}
-              className={cn(
-                "flex-1 flex items-center justify-center text-xs py-1.5 rounded-md font-medium capitalize transition-all",
-                viewMode === mode ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-700"
-              )}
-            >
-              {mode === 'outline' && <Folder size={14} className="mr-1.5" />}
-              {mode === 'default' && <FileText size={14} className="mr-1.5" />}
-              {mode === 'scenes' && <GripVertical size={14} className="mr-1.5" />}
-              {mode}
-            </button>
-          ))}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex bg-stone-200/50 p-1 rounded-lg flex-1 mr-2">
+            {(['outline', 'default', 'scenes'] as const).map(mode => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={cn(
+                  "flex-1 flex items-center justify-center text-xs py-1.5 rounded-md font-medium capitalize transition-all",
+                  viewMode === mode ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-700"
+                )}
+              >
+                {mode === 'outline' && <Folder size={14} className="mr-1.5" />}
+                {mode === 'default' && <FileText size={14} className="mr-1.5" />}
+                {mode === 'scenes' && <GripVertical size={14} className="mr-1.5" />}
+                {mode}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -129,7 +134,7 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
                   {chapters.map((chapter, index) => {
                     return (
                       // @ts-expect-error React 19 key prop issue
-                      <Draggable key={chapter.id} draggableId={chapter.id} index={index}>
+                      <Draggable key={chapter.id} draggableId={chapter.id} index={index} isDragDisabled={chapter.isArchived}>
                       {(provided, snapshot) => (
                         <div
                           ref={provided.innerRef}
@@ -145,7 +150,7 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
                           </div>
                           <Folder size={14} className="mr-2 text-stone-400" />
                           <span 
-                            className="flex-1 cursor-pointer whitespace-normal break-words text-xs md:text-sm"
+                            className={cn("flex-1 cursor-pointer whitespace-normal break-words text-xs md:text-sm", chapter.isArchived && "opacity-50 italic")}
                             onClick={() => {
                               dispatch({ type: 'SET_ACTIVE_DOCUMENT', payload: chapter.id });
                               setMobileOpen?.(false);
@@ -153,6 +158,16 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
                           >
                             {chapter.title}
                           </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              dispatch({ type: 'UPDATE_CHAPTER', payload: { id: chapter.id, isArchived: !chapter.isArchived } });
+                            }}
+                            className="md:opacity-0 md:group-hover:opacity-100 opacity-100 p-1 hover:bg-stone-200 hover:text-stone-700 rounded text-stone-400 transition-all relative z-10 mr-1"
+                            title={chapter.isArchived ? "Unarchive Chapter" : "Archive Chapter"}
+                          >
+                            {chapter.isArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                          </button>
                           {renderDeleteButton(chapter.id, () => dispatch({ type: 'DELETE_CHAPTER', payload: chapter.id }))}
                         </div>
                       )}
@@ -181,10 +196,20 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
                   >
                     <div className="flex items-center flex-1 min-w-0">
                       <Folder size={14} className="mr-2 text-stone-400 shrink-0" />
-                      <span className="whitespace-normal break-words text-xs md:text-sm">{chapter.title}</span>
+                      <span className={cn("whitespace-normal break-words text-xs md:text-sm", chapter.isArchived && "opacity-50 italic")}>{chapter.title}</span>
                     </div>
                     <div className="flex items-center space-x-1 shrink-0 ml-2">
-                      {deletingId !== chapter.id && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          dispatch({ type: 'UPDATE_CHAPTER', payload: { id: chapter.id, isArchived: !chapter.isArchived } });
+                        }}
+                        className="md:opacity-0 md:group-hover:opacity-100 opacity-100 p-1 hover:bg-stone-200 hover:text-stone-700 rounded text-stone-400 transition-all relative z-10"
+                        title={chapter.isArchived ? "Unarchive Chapter" : "Archive Chapter"}
+                      >
+                        {chapter.isArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                      </button>
+                      {deletingId !== chapter.id && !chapter.isArchived && (
                         <button 
                           onClick={(e) => { 
                             e.stopPropagation(); 
@@ -235,14 +260,14 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
                   {chapIndex > 0 && (
                     <div className="flex items-center my-3">
                       <div className="flex-1 h-px bg-stone-200"></div>
-                      <div className="mx-2 text-[10px] font-bold text-stone-300 uppercase tracking-widest">{chapter.title}</div>
+                      <div className={cn("mx-2 text-[10px] font-bold text-stone-300 uppercase tracking-widest", chapter.isArchived && "opacity-50")}>{chapter.title}</div>
                       <div className="flex-1 h-px bg-stone-200"></div>
                     </div>
                   )}
                   {chapIndex === 0 && (
-                    <div className="text-[10px] font-bold text-stone-300 uppercase tracking-widest mb-2 px-2 text-center">{chapter.title}</div>
+                    <div className={cn("text-[10px] font-bold text-stone-300 uppercase tracking-widest mb-2 px-2 text-center", chapter.isArchived && "opacity-50")}>{chapter.title}</div>
                   )}
-                  <Droppable droppableId={`chapter-${chapter.id}`} type="scene">
+                  <Droppable droppableId={`chapter-${chapter.id}`} type="scene" isDropDisabled={chapter.isArchived}>
                     {(provided, snapshot) => (
                       <div 
                         {...provided.droppableProps} 
@@ -258,7 +283,7 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
                           
                           return (
                             // @ts-expect-error React 19 key prop issue
-                            <Draggable key={scene.id} draggableId={scene.id} index={index}>
+                            <Draggable key={scene.id} draggableId={scene.id} index={index} isDragDisabled={chapter.isArchived}>
                               {(provided, snapshot) => (
                                 <div
                                   ref={provided.innerRef}
@@ -304,7 +329,25 @@ export function OutlinePanel({ setMobileOpen }: { setMobileOpen?: (open: boolean
         </DragDropContext>
       </div>
       
-      <div className="p-4 border-t border-stone-200 bg-white">
+      <div className="p-4 border-t border-stone-200 bg-white space-y-3">
+        {hasArchived && (
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className="w-full flex items-center justify-center py-2 text-sm font-medium text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors border border-stone-200 shadow-sm"
+          >
+            {showArchived ? (
+              <>
+                <EyeOff size={16} className="mr-2" />
+                Hide Archived
+              </>
+            ) : (
+              <>
+                <Eye size={16} className="mr-2" />
+                Show Archived
+              </>
+            )}
+          </button>
+        )}
         <button 
           onClick={addChapter}
           className="w-full flex items-center justify-center py-2.5 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-200 shadow-sm"

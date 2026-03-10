@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useStore } from '../store/StoreContext';
-import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check, ChevronLeft, ArrowUpToLine, MessageSquare, CheckCircle2, Circle, List, PanelRightClose, PanelRightOpen, MessageSquareOff, Search, ExternalLink, Eye, FileText, ChevronRight } from 'lucide-react';
+import { AlignLeft, Highlighter, Trash2, Maximize2, Minimize2, MoreVertical, Link as LinkIcon, Copy, Check, ChevronLeft, ArrowUpToLine, MessageSquare, CheckCircle2, Circle, List, PanelRightClose, PanelRightOpen, MessageSquareOff, Search, ExternalLink, Eye, FileText, ChevronRight, Archive, ArchiveRestore } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { FindReplaceBar } from './FindReplaceBar';
 
@@ -139,6 +139,12 @@ export function EditorPanel() {
 
   const activeDocument = state.scenes.find(s => s.id === activeDocId) || state.chapters.find(c => c.id === activeDocId);
   const isScene = state.scenes.some(s => s.id === activeDocId);
+  
+  const activeChapter = isScene 
+    ? state.chapters.find(c => c.id === (activeDocument as any).chapterId)
+    : activeDocument as any;
+    
+  const isArchived = activeChapter?.isArchived || false;
   
   const blocks = state.blocks.filter(b => b.documentId === activeDocId).sort((a, b) => a.order - b.order);
   const characters = state.characters.filter(c => c.workId === activeWorkId).sort((a, b) => a.order - b.order);
@@ -304,11 +310,19 @@ export function EditorPanel() {
           "mx-auto transition-all duration-300",
           isFocusMode ? "max-w-3xl" : "max-w-5xl"
         )}>
+          {isArchived && (
+            <div className="mb-6 bg-stone-100 border border-stone-200 rounded-lg p-3 flex items-center justify-center text-stone-500 text-sm font-medium">
+              <Archive size={16} className="mr-2" />
+              This chapter is archived and in read-only mode.
+            </div>
+          )}
           <div className="flex items-center justify-between mb-4">
             <input
               type="text"
               value={activeDocument.title}
+              readOnly={isArchived}
               onChange={(e) => {
+                if (isArchived) return;
                 if (isScene) {
                   dispatch({ type: 'UPDATE_SCENE', payload: { id: activeDocId, title: e.target.value } });
                 } else {
@@ -349,22 +363,33 @@ export function EditorPanel() {
                   {copied ? <Check size={20} className="text-emerald-600" /> : <Copy size={20} />}
                 </button>
               ) : (
-                <button
-                  onClick={() => {
-                    if (confirm('Delete this chapter?')) {
-                      dispatch({ type: 'DELETE_CHAPTER', payload: activeDocId });
-                    }
-                  }}
-                  className="p-2 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                  title="Delete Chapter"
-                >
-                  <Trash2 size={20} />
-                </button>
+                <>
+                  <button
+                    onClick={() => {
+                      dispatch({ type: 'UPDATE_CHAPTER', payload: { id: activeDocId, isArchived: !isArchived } });
+                    }}
+                    className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md transition-colors"
+                    title={isArchived ? "Unarchive Chapter" : "Archive Chapter"}
+                  >
+                    {isArchived ? <ArchiveRestore size={20} /> : <Archive size={20} />}
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm('Delete this chapter?')) {
+                        dispatch({ type: 'DELETE_CHAPTER', payload: activeDocId });
+                      }
+                    }}
+                    className="p-2 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    title="Delete Chapter"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                </>
               )}
             </div>
           </div>
 
-          {isScene && !state.disguiseMode && (
+          {isScene && !state.disguiseMode && !isArchived && (
             <div className="mb-12 flex items-center space-x-3">
               <label className="text-xs font-bold text-stone-400 uppercase tracking-wider">Parent Chapter:</label>
               <select
@@ -389,7 +414,7 @@ export function EditorPanel() {
           )}
 
           {/* Character Binding Area */}
-          {!state.disguiseMode && (
+          {!state.disguiseMode && !isArchived && (
             <div className="mb-12 flex flex-wrap gap-2 items-center">
               <span className="text-xs font-medium text-stone-400 uppercase tracking-wider mr-2">
                 {isScene ? 'Characters in Scene:' : 'Characters in Chapter:'}
@@ -455,23 +480,25 @@ export function EditorPanel() {
                         </button>
 
                         {/* Color Picker Overlay */}
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1 bg-white/80 backdrop-blur-sm p-1 rounded-full shadow-sm border border-stone-200">
-                          {Object.keys(SCENE_STATUS_COLORS).map(colorKey => (
-                            <button
-                              key={colorKey}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                dispatch({ type: 'UPDATE_SCENE', payload: { id: scene.id, statusColor: colorKey === 'none' ? undefined : colorKey } });
-                              }}
-                              className={cn(
-                                "w-3 h-3 rounded-full border border-black/5 transition-transform hover:scale-125",
-                                SCENE_STATUS_COLORS[colorKey].dot,
-                                (scene.statusColor || 'none') === colorKey && "ring-1 ring-offset-1 ring-stone-400"
-                              )}
-                              title={SCENE_STATUS_COLORS[colorKey].label}
-                            />
-                          ))}
-                        </div>
+                        {!isArchived && (
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1 bg-white/80 backdrop-blur-sm p-1 rounded-full shadow-sm border border-stone-200">
+                            {Object.keys(SCENE_STATUS_COLORS).map(colorKey => (
+                              <button
+                                key={colorKey}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  dispatch({ type: 'UPDATE_SCENE', payload: { id: scene.id, statusColor: colorKey === 'none' ? undefined : colorKey } });
+                                }}
+                                className={cn(
+                                  "w-3 h-3 rounded-full border border-black/5 transition-transform hover:scale-125",
+                                  SCENE_STATUS_COLORS[colorKey].dot,
+                                  (scene.statusColor || 'none') === colorKey && "ring-1 ring-offset-1 ring-stone-400"
+                                )}
+                                title={SCENE_STATUS_COLORS[colorKey].label}
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -485,7 +512,7 @@ export function EditorPanel() {
           )}
 
           {/* Chapter Character Summary */}
-          {!isScene && chapterCharacters.length > 0 && !state.disguiseMode && (
+          {!isScene && chapterCharacters.length > 0 && !state.disguiseMode && !isArchived && (
             <div className="mb-12 space-y-6">
               <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider border-b border-stone-100 pb-2">Character Appearances</h3>
               {chapterCharacters.map(charId => {
@@ -529,7 +556,7 @@ export function EditorPanel() {
               return (
               <div key={block.id} id={`block-${block.id}`} className="group relative flex flex-col transition-colors duration-500">
                 {/* Merge Up Button */}
-                {canMergeUp && (
+                {canMergeUp && !isArchived && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                     <button
                       onClick={() => handleMergeUp(block.id)}
@@ -555,6 +582,7 @@ export function EditorPanel() {
                             {Object.keys(LENS_COLORS).map(color => (
                               <button
                                 key={color}
+                                disabled={isArchived}
                                 onClick={() => handleLensColorChange(block.id, color)}
                                 className={cn(
                                   "w-4 h-4 rounded-full border border-black/10 transition-transform hover:scale-110",
@@ -565,7 +593,8 @@ export function EditorPanel() {
                                   color === 'purple' && "bg-purple-400",
                                   color === 'brown' && "bg-orange-400",
                                   color === 'black' && "bg-stone-900",
-                                  block.color === color && "ring-2 ring-offset-1 ring-stone-400"
+                                  block.color === color && "ring-2 ring-offset-1 ring-stone-400",
+                                  isArchived && "opacity-50 cursor-not-allowed"
                                 )}
                                 title={color.charAt(0).toUpperCase() + color.slice(1)}
                               />
@@ -588,13 +617,15 @@ export function EditorPanel() {
                             >
                               <ExternalLink size={14} />
                             </button>
-                            <button 
-                              onClick={() => handleRemoveLens(block.id)}
-                              className="p-1 hover:bg-black/5 rounded transition-colors"
-                              title="Remove Lens (keep text)"
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            {!isArchived && (
+                              <button 
+                                onClick={() => handleRemoveLens(block.id)}
+                                className="p-1 hover:bg-black/5 rounded transition-colors"
+                                title="Remove Lens (keep text)"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
                           </div>
                         </div>
                       )}
@@ -604,8 +635,13 @@ export function EditorPanel() {
                         value={block.content}
                         searchTerm={searchTerm}
                         blockId={block.id}
-                        onChange={(e: any) => handleBlockChange(block.id, { content: e.target.value })}
+                        readOnly={isArchived}
+                        onChange={(e: any) => {
+                          if (isArchived) return;
+                          handleBlockChange(block.id, { content: e.target.value });
+                        }}
                         onKeyDown={(e: React.KeyboardEvent) => {
+                          if (isArchived) return;
                           if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                             e.preventDefault();
                             const newType = block.type === 'text' ? 'lens' : 'text';
@@ -656,26 +692,32 @@ export function EditorPanel() {
                           <AutoResizeTextarea
                             scrollContainerRef={scrollContainerRef}
                             value={block.description}
-                            onChange={(e: any) => handleBlockChange(block.id, { description: e.target.value })}
+                            readOnly={isArchived}
+                            onChange={(e: any) => {
+                              if (isArchived) return;
+                              handleBlockChange(block.id, { description: e.target.value });
+                            }}
                             placeholder="Enter block description..."
                             className="flex-1 text-sm text-stone-600 bg-stone-50 p-2 rounded-md outline-none focus:ring-1 focus:ring-emerald-500"
                           />
-                          <button
-                            onClick={() => handleBlockChange(block.id, { completed: !block.completed })}
-                            className={cn(
-                              "mt-1 p-1 rounded-full transition-colors shrink-0",
-                              block.completed ? "text-emerald-500 hover:bg-emerald-50" : "text-stone-300 hover:text-stone-400 hover:bg-stone-100"
-                            )}
-                            title={block.completed ? "Mark as incomplete" : "Mark as complete"}
-                          >
-                            {block.completed ? <CheckCircle2 size={18} /> : <Circle size={18} />}
-                          </button>
+                          {!isArchived && (
+                            <button
+                              onClick={() => handleBlockChange(block.id, { completed: !block.completed })}
+                              className={cn(
+                                "mt-1 p-1 rounded-full transition-colors shrink-0",
+                                block.completed ? "text-emerald-500 hover:bg-emerald-50" : "text-stone-300 hover:text-stone-400 hover:bg-stone-100"
+                              )}
+                              title={block.completed ? "Mark as incomplete" : "Mark as complete"}
+                            >
+                              {block.completed ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
 
                     {/* Block Actions (Hover) */}
-                    {!state.disguiseMode && (
+                    {!state.disguiseMode && !isArchived && (
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-2 px-2 absolute top-full left-0 z-10 bg-white shadow-sm rounded-md border border-stone-200 py-0.5 mt-1">
                         <button 
                           onClick={() => handleAddBlock('text', block.id)}
@@ -703,7 +745,7 @@ export function EditorPanel() {
                   </div>
 
                   {/* Right Side Actions for Text Blocks */}
-                  {block.type === 'text' && !state.disguiseMode && (
+                  {block.type === 'text' && !state.disguiseMode && !isArchived && (
                     <div className={cn(
                       "flex flex-col items-center space-y-2 opacity-0 group-hover:opacity-100 transition-opacity pt-2 w-8 shrink-0"
                     )}>
@@ -728,7 +770,7 @@ export function EditorPanel() {
               );
             })}
 
-            {blocks.length === 0 && !state.disguiseMode && (
+            {blocks.length === 0 && !state.disguiseMode && !isArchived && (
               <div className="flex space-x-4 mt-8">
                 <button 
                   onClick={() => handleAddBlock('text')}

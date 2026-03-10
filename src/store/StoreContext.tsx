@@ -3,9 +3,9 @@ import { v4 as uuidv4 } from 'uuid';
 
 export type Work = { id: string; title: string; createdAt: number; order: number; characterFields?: CharacterFieldDef[]; lensesDescription?: string; icon?: string };
 export type Character = { id: string; workId: string; name: string; description: string; order: number; customFields?: Record<string, any> };
-export type Chapter = { id: string; workId: string; title: string; order: number; goalWordCount?: number; deadline?: string; completed?: boolean };
+export type Chapter = { id: string; workId: string; title: string; order: number; goalWordCount?: number; deadline?: string; completed?: boolean; isArchived?: boolean };
 export type Scene = { id: string; chapterId: string; title: string; order: number; characterIds: string[]; characterNotes?: Record<string, string>; statusColor?: string };
-export type Block = { id: string; documentId: string; type: 'text' | 'lens'; content: string; color?: string; order: number; notes?: string; linkedLensIds?: string[]; description?: string; completed?: boolean };
+export type Block = { id: string; documentId: string; type: 'text' | 'lens'; content: string; color?: string; order: number; notes?: string; linkedLensIds?: string[]; description?: string; completed?: boolean; isPinned?: boolean };
 
 export type CharacterFieldType = 'text' | 'number' | 'select' | 'multiselect';
 export type CharacterFieldDef = { id: string; name: string; type: CharacterFieldType; options: string[] };
@@ -51,7 +51,7 @@ type Action =
   | { type: 'TOGGLE_DISGUISE_MODE' }
   | { type: 'TOGGLE_SHOW_DESCRIPTIONS' }
   | { type: 'ADD_CHAPTER'; payload: { workId: string; title: string } }
-  | { type: 'UPDATE_CHAPTER'; payload: { id: string; title: string } }
+  | { type: 'UPDATE_CHAPTER'; payload: { id: string; title?: string; isArchived?: boolean } }
   | { type: 'UPDATE_CHAPTER_GOAL'; payload: { id: string; goalWordCount?: number; deadline?: string; completed?: boolean } }
   | { type: 'REORDER_CHAPTERS'; payload: { workId: string; startIndex: number; endIndex: number } }
   | { type: 'ADD_SCENE'; payload: { chapterId: string; title: string } }
@@ -61,7 +61,7 @@ type Action =
   | { type: 'TOGGLE_SCENE_CHARACTER'; payload: { sceneId: string; characterId: string } }
   | { type: 'UPDATE_SCENE_CHARACTER_NOTE'; payload: { sceneId: string; characterId: string; note: string } }
   | { type: 'ADD_BLOCK'; payload: { documentId: string; type: 'text' | 'lens'; afterBlockId?: string } }
-  | { type: 'UPDATE_BLOCK'; payload: { id: string; content?: string; type?: 'text' | 'lens'; color?: string; notes?: string; linkedLensIds?: string[]; description?: string; completed?: boolean } }
+  | { type: 'UPDATE_BLOCK'; payload: { id: string; content?: string; type?: 'text' | 'lens'; color?: string; notes?: string; linkedLensIds?: string[]; description?: string; completed?: boolean; isPinned?: boolean } }
   | { type: 'REMOVE_LENS'; payload: string }
   | { type: 'DELETE_BLOCK'; payload: string }
   | { type: 'ADD_CHARACTER'; payload: { workId: string; name: string } }
@@ -243,7 +243,7 @@ function innerReducer(state: StoreState, action: Action): StoreState {
       };
     }
     case 'UPDATE_CHAPTER':
-      return { ...state, chapters: state.chapters.map(c => c.id === action.payload.id ? { ...c, title: action.payload.title } : c) };
+      return { ...state, chapters: state.chapters.map(c => c.id === action.payload.id ? { ...c, ...action.payload } : c) };
     case 'UPDATE_CHAPTER_GOAL':
       return { 
         ...state, 

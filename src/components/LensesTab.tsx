@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/StoreContext';
-import { Layers, MapPin, Edit2, Link as LinkIcon, X, Plus, Lock, Filter, ExternalLink, Search } from 'lucide-react';
+import { Layers, MapPin, Edit2, Link as LinkIcon, X, Plus, Lock, Filter, ExternalLink, Search, Pin, PinOff } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 const LENS_COLORS = {
@@ -73,6 +73,9 @@ export function LensesTab() {
     const term = privateSearchTerm.toLowerCase();
     lenses = lenses.filter(l => l.notes && l.notes.toLowerCase().includes(term));
   }
+
+  const pinnedLenses = lenses.filter(l => l.isPinned);
+  const unpinnedLenses = lenses.filter(l => !l.isPinned);
 
   const getLensLocation = (docId: string) => {
     const scene = state.scenes.find(s => s.id === docId);
@@ -250,8 +253,126 @@ export function LensesTab() {
             </div>
           </div>
 
-          <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6">
-            {lenses.map(lens => (
+          <div className="space-y-12">
+            {pinnedLenses.length > 0 && (
+              <div className="col-span-full">
+                <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider border-b border-stone-200 pb-2 mb-4 flex items-center">
+                  <Pin size={14} className="mr-2" /> Pinned Lenses
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {pinnedLenses.map(lens => (
+                    <div 
+                      key={lens.id}
+                      id={`lens-card-${lens.id}`}
+                      className={cn(
+                        "rounded-xl border p-6 shadow-sm transition-all duration-300 hover:shadow-md cursor-pointer group relative backdrop-blur-sm flex flex-col",
+                        LENS_COLORS[lens.color as keyof typeof LENS_COLORS] || LENS_COLORS.red,
+                        selectedLensId === lens.id && "ring-2 ring-emerald-500 ring-offset-2 shadow-md"
+                      )}
+                      onClick={() => dispatch({ type: 'SET_ACTIVE_LENS', payload: lens.id })}
+                    >
+                      <div className="flex justify-between items-start mb-4 pb-3 border-b border-black/10">
+                        <div className="flex items-center text-sm font-medium opacity-70">
+                          <MapPin size={14} className="mr-1.5 shrink-0" />
+                          <span className="truncate">{getLensLocation(lens.documentId)}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUpdateLens(lens.id, { isPinned: false });
+                            }}
+                            className="text-stone-500 hover:text-amber-600 p-1.5 hover:bg-black/5 rounded-md transition-colors"
+                            title="Unpin Lens"
+                          >
+                            <PinOff size={16} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleNavigateToLens(lens.id, lens.documentId);
+                            }}
+                            className="text-stone-500 hover:text-emerald-700 p-1.5 hover:bg-black/5 rounded-md transition-colors"
+                            title="Go to location in text"
+                          >
+                            <ExternalLink size={16} />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="text-base leading-relaxed font-medium line-clamp-4 mb-4 flex-1">
+                        {lens.color === 'black' ? (
+                          <span className="text-stone-500 italic flex items-center"><Lock size={16} className="mr-2"/> Hidden Content</span>
+                        ) : (
+                          lens.content || <span className="italic opacity-50">Empty lens...</span>
+                        )}
+                      </div>
+
+                      {lens.notes && (
+                        <div className="mb-4 p-3 bg-white/60 rounded-lg text-sm text-stone-700 whitespace-pre-wrap border border-black/5 line-clamp-3">
+                          <span className="font-bold block mb-1 opacity-70 text-xs uppercase tracking-wider">Private Notes</span>
+                          {lens.notes}
+                        </div>
+                      )}
+
+                      {lens.linkedLensIds && lens.linkedLensIds.length > 0 && (
+                        <div className="mb-4 pt-3 border-t border-black/10 flex flex-wrap gap-2">
+                          {lens.linkedLensIds.map(linkedId => {
+                            const linkedLens = lenses.find(l => l.id === linkedId);
+                            if (!linkedLens) return null;
+                            return (
+                              <button
+                                key={linkedId}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  scrollToLens(linkedId);
+                                }}
+                                className={cn(
+                                  "text-xs flex items-center px-2.5 py-1.5 rounded-md transition-colors font-medium",
+                                  lens.color === 'black' ? "bg-white/10 hover:bg-white/20 text-stone-300" : "bg-black/5 hover:bg-black/10 text-stone-700"
+                                )}
+                              >
+                                <LinkIcon size={12} className="mr-1.5 shrink-0" />
+                                <span className="truncate max-w-[150px]">
+                                  {linkedLens.color === 'black' ? 'Hidden Content' : (linkedLens.content || 'Empty lens')}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-4 border-t border-black/10 mt-auto">
+                        <div className="flex items-center space-x-4 text-sm font-semibold opacity-70">
+                          {lens.notes && (
+                            <span className="flex items-center"><Edit2 size={14} className="mr-1.5" /> Note</span>
+                          )}
+                          {lens.linkedLensIds && lens.linkedLensIds.length > 0 && (
+                            <span className="flex items-center"><LinkIcon size={14} className="mr-1.5" /> {lens.linkedLensIds.length}</span>
+                          )}
+                        </div>
+                        <button 
+                          className="opacity-0 group-hover:opacity-100 px-3 py-1.5 bg-black/5 hover:bg-black/10 rounded-md text-sm font-bold transition-all"
+                          onClick={(e) => { e.stopPropagation(); dispatch({ type: 'SET_ACTIVE_LENS', payload: lens.id }); }}
+                        >
+                          Details
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              {pinnedLenses.length > 0 && unpinnedLenses.length > 0 && (
+                <div className="col-span-full mb-6">
+                  <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider border-b border-stone-200 pb-2">All Lenses</h3>
+                </div>
+              )}
+
+              <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6">
+                {unpinnedLenses.map(lens => (
               <div 
                 key={lens.id}
                 id={`lens-card-${lens.id}`}
@@ -267,16 +388,28 @@ export function LensesTab() {
                     <MapPin size={12} className="mr-1.5 shrink-0" />
                     <span className="truncate">{getLensLocation(lens.documentId)}</span>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleNavigateToLens(lens.id, lens.documentId);
-                    }}
-                    className="text-stone-500 hover:text-emerald-700 p-1 hover:bg-black/5 rounded transition-colors"
-                    title="Go to location in text"
-                  >
-                    <ExternalLink size={14} />
-                  </button>
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUpdateLens(lens.id, { isPinned: true });
+                      }}
+                      className="text-stone-500 hover:text-emerald-600 p-1 hover:bg-black/5 rounded transition-colors opacity-0 group-hover:opacity-100"
+                      title="Pin Lens"
+                    >
+                      <Pin size={14} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNavigateToLens(lens.id, lens.documentId);
+                      }}
+                      className="text-stone-500 hover:text-emerald-700 p-1 hover:bg-black/5 rounded transition-colors"
+                      title="Go to location in text"
+                    >
+                      <ExternalLink size={14} />
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="text-sm leading-relaxed font-medium line-clamp-6 mb-4">
@@ -339,6 +472,7 @@ export function LensesTab() {
                 </div>
               </div>
             ))}
+            </div>
             
             {lenses.length === 0 && (
               <div className="col-span-full py-20 text-center text-stone-400">
@@ -347,6 +481,7 @@ export function LensesTab() {
                 <p className="text-sm mt-2">Add them in the Writing tab to highlight important information.</p>
               </div>
             )}
+            </div>
           </div>
         </div>
       </div>
