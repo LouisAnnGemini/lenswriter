@@ -1,10 +1,14 @@
 import React from 'react';
 import { useStore } from '../store/StoreContext';
-import { Edit3, Layers, Users, Maximize2, Minimize2, Menu, ChevronLeft, FileText, MessageSquare, MessageSquareOff, Eye } from 'lucide-react';
+import { Edit3, Layers, Users, Maximize2, Minimize2, Menu, ChevronLeft, FileText, MessageSquare, MessageSquareOff, Eye, LogIn, LogOut } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useFirebase } from '../context/FirebaseContext';
+import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 
 export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => void }) {
   const { state, dispatch } = useStore();
+  const { user } = useFirebase();
 
   if (state.focusMode) return null;
 
@@ -59,6 +63,13 @@ export function TopNav({ setMobileOpen }: { setMobileOpen?: (open: boolean) => v
         </div>
 
         <div className="flex items-center space-x-2">
+          <button
+            onClick={() => user ? signOut(auth) : signInWithPopup(auth, new GoogleAuthProvider())}
+            className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md transition-colors"
+            title={user ? "Sign Out" : "Sign In"}
+          >
+            {user ? <LogOut size={18} /> : <LogIn size={18} />}
+          </button>
           <button
             onClick={() => dispatch({ type: 'TOGGLE_DISGUISE_MODE' })}
             className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md transition-colors hidden md:block"

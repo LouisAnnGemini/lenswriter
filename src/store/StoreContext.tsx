@@ -1,5 +1,8 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { useFirebase } from '../context/FirebaseContext';
+import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 export type Work = { id: string; title: string; createdAt: number; order: number; characterFields?: CharacterFieldDef[]; lensesDescription?: string; icon?: string };
 export type Character = { id: string; workId: string; name: string; description: string; order: number; customFields?: Record<string, any> };
@@ -739,15 +742,35 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const [state, dispatch] = useReducer(storeReducer, initialState, initializer);
+  const { user } = useFirebase();
 
-  React.useEffect(() => {
-    try {
+  useEffect(() => {
+    if (!user) return;
+    
+    const docRef = doc(db, 'users', user.uid, 'data', 'state');
+    
+    // Fetch initial data
+    getDoc(docRef).then(docSnap => {
+      if (docSnap.exists()) {
+        dispatch({ type: 'IMPORT_DATA', payload: docSnap.data() as StoreState });
+      }
+    });
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      const docRef = doc(db, 'users', user.uid, 'data', 'state');
       const { past, future, ...stateToSave } = state;
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
-    } catch (e) {
-      console.error("Failed to save to local storage", e);
+      setDoc(docRef, stateToSave);
+    } else {
+      try {
+        const { past, future, ...stateToSave } = state;
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
+      } catch (e) {
+        console.error("Failed to save to local storage", e);
+      }
     }
-  }, [state]);
+  }, [state, user]);
 
   return <StoreContext.Provider value={{ state, dispatch }}>{children}</StoreContext.Provider>;
 };
