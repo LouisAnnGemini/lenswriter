@@ -7,6 +7,7 @@ import { cn } from '../lib/utils';
 import { WorkIcon } from './WorkIcon';
 import { WorkIconPicker } from './WorkIconPicker';
 import { BackupManager } from './BackupManager';
+import { AuthModal } from './AuthModal';
 
 export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, setMobileOpen?: (open: boolean) => void }) {
   const { state, dispatch } = useStore();
@@ -17,6 +18,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
   const [editTitle, setEditTitle] = useState('');
   const [deletingWorkId, setDeletingWorkId] = useState<string | null>(null);
   const [showBackupManager, setShowBackupManager] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   if (state.focusMode) return null;
 
@@ -312,7 +314,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
             </button>
           ) : (
             <button
-              onClick={signIn}
+              onClick={() => setShowAuthModal(true)}
               className={cn(
                 "flex items-center w-full px-4 py-2 text-sm font-medium rounded-md transition-colors text-emerald-400 hover:bg-emerald-500/10",
                 collapsed && "justify-center px-0"
@@ -329,6 +331,8 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen?: boolean, s
       {showBackupManager && (
         <BackupManager onClose={() => setShowBackupManager(false)} />
       )}
+
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </div>
     </>
   );

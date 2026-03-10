@@ -29,7 +29,15 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
       await signInWithEmailAndPassword(auth, email, password);
     } else {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (error: any) {
+        if (error.code === 'auth/popup-closed-by-user') {
+          console.log('User closed the authentication popup.');
+          return; // Gracefully handle the cancellation
+        }
+        throw error; // Re-throw other errors
+      }
     }
   };
 
