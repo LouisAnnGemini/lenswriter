@@ -1,65 +1,31 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ===============================================================
-    // Assumed Data Model
-    // ===============================================================
-    //
-    // Collection: users
-    // Document ID: userId
-    // Fields:
-    //   - uid: string (required, immutable) - Firebase Auth UID
-    //   - email: string (required, immutable) - User email
-    //   - displayName: string (optional) - User display name
-    //
-    // Collection: lenses
-    // Document ID: lensId
-    // Fields:
-    //   - id: string (required, immutable)
-    //   - documentId: string (required)
-    //   - content: string (optional, size < 1000)
-    //   - color: string (optional)
-    //   - isPinned: boolean (optional)
-    //   - notes: string (optional, size < 1000)
-    //   - linkedLensIds: list (optional, size < 20)
-    //   - authorUid: string (required, immutable)
-    //
-    // ===============================================================
 
     // ===============================================================
     // Helper Functions
     // ===============================================================
+
     function isAuthenticated() {
-       return request.auth != null;
+      return request.auth != null;
     }
+
     function isOwner(userId) {
-       return isAuthenticated() && request.auth.uid == userId;
+      return isAuthenticated() && request.auth.uid == userId;
     }
-    function uidNotModified(field) {
-       return !('uid' in request.resource.data) || request.resource.data[field] == resource.data[field];
-    }
-    function hasRequiredFields(fields) {
-       return request.resource.data.keys().hasAll(fields);
-    }
-    function isValidString(field, minLen, maxLen) {
-       return !('field' in request.resource.data) || (request.resource.data[field] is string && request.resource.data[field].size() >= minLen && request.resource.data[field].size() <= maxLen);
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "louisanngemini@gmail.com" && request.auth.token.email_verified == true));
     }
 
     // ===============================================================
     // Rules
     // ===============================================================
 
-    match /users/{userId} {
-      allow read: if isOwner(userId);
-      allow create: if isOwner(userId) && hasRequiredFields(['uid', 'email']);
-      allow update: if isOwner(userId) && uidNotModified('uid');
-    }
-
-    match /users/{userId}/lenses/{lensId} {
-      allow read: if isOwner(userId);
-      allow create: if isOwner(userId) && hasRequiredFields(['id', 'documentId', 'authorUid']) && request.resource.data.authorUid == request.auth.uid;
-      allow update: if isOwner(userId) && request.resource.data.authorUid == resource.data.authorUid;
-      allow delete: if isOwner(userId);
+    match /users/{userId}/data/state {
+      allow read, write: if isOwner(userId) || isAdmin();
     }
   }
 }

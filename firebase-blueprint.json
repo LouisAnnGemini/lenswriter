@@ -1,41 +1,30 @@
 {
   "entities": {
-    "User": {
-      "title": "User",
-      "description": "User profile information",
+    "StoreState": {
+      "title": "StoreState",
+      "description": "The entire application state.",
       "type": "object",
       "properties": {
-        "uid": { "type": "string", "description": "Firebase Auth UID" },
-        "email": { "type": "string", "format": "email" },
-        "displayName": { "type": "string" }
-      },
-      "required": ["uid", "email"]
-    },
-    "Lens": {
-      "title": "Lens",
-      "description": "A lens containing content and metadata",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "documentId": { "type": "string" },
-        "content": { "type": "string" },
-        "color": { "type": "string" },
-        "isPinned": { "type": "boolean" },
-        "notes": { "type": "string" },
-        "linkedLensIds": { "type": "array" },
-        "authorUid": { "type": "string" }
-      },
-      "required": ["id", "documentId", "authorUid"]
+        "works": { "type": "array" },
+        "characters": { "type": "array" },
+        "chapters": { "type": "array" },
+        "scenes": { "type": "array" },
+        "blocks": { "type": "array" },
+        "deadlines": { "type": "array" },
+        "activeWorkId": { "type": "string" },
+        "activeDocumentId": { "type": "string" },
+        "activeTab": { "type": "string" },
+        "activeLensId": { "type": "string" },
+        "focusMode": { "type": "boolean" },
+        "disguiseMode": { "type": "boolean" },
+        "showDescriptions": { "type": "boolean" }
+      }
     }
   },
   "firestore": {
-    "/users/{userId}": {
-      "schema": "User",
-      "description": "User profile document"
-    },
-    "/users/{userId}/lenses/{lensId}": {
-      "schema": "Lens",
-      "description": "User's lenses"
+    "/users/{userId}/data/state": {
+      "schema": { "$ref": "StoreState" },
+      "description": "The user's application state."
     }
   }
 }
