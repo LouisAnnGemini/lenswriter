@@ -1,24 +1,22 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/StoreContext';
-import { useFirebase } from '../context/FirebaseContext';
+import { useSupabase } from '../context/SupabaseContext';
 import { Book, Plus, ChevronLeft, ChevronRight, Download, Upload, Trash2, Edit2, GripVertical, Check, X, Menu, LogIn, LogOut, Save, Clock, Cloud } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { cn } from '../lib/utils';
 import { WorkIcon } from './WorkIcon';
 import { WorkIconPicker } from './WorkIconPicker';
 import { BackupManager } from './BackupManager';
-import { WebDAVSettings } from './WebDAVSettings';
 
 export function Sidebar({ mobileOpen, setMobileOpen, onSignIn }: { mobileOpen?: boolean, setMobileOpen?: (open: boolean) => void, onSignIn: () => void }) {
   const { state, dispatch } = useStore();
-  const { user, signOut } = useFirebase();
+  const { user, signOut } = useSupabase();
   const [collapsed, setCollapsed] = useState(true);
   const [newWorkTitle, setNewWorkTitle] = useState('');
   const [editingWorkId, setEditingWorkId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [deletingWorkId, setDeletingWorkId] = useState<string | null>(null);
   const [showBackupManager, setShowBackupManager] = useState(false);
-  const [showWebDAVSettings, setShowWebDAVSettings] = useState(false);
 
   if (state.focusMode) return null;
 
@@ -315,17 +313,6 @@ export function Sidebar({ mobileOpen, setMobileOpen, onSignIn }: { mobileOpen?: 
         )}
         
         <div className="p-2 border-t border-stone-800 hidden md:block">
-          <button
-            onClick={() => setShowWebDAVSettings(true)}
-            className={cn(
-              "flex items-center w-full px-4 py-2 text-sm font-medium rounded-md transition-colors text-stone-400 hover:bg-stone-800 hover:text-stone-200 mb-1",
-              collapsed && "justify-center px-0"
-            )}
-            title="WebDAV Cloud Sync"
-          >
-            <Cloud size={16} className={cn("shrink-0", !collapsed && "mr-3")} />
-            {!collapsed && <span>Cloud Sync</span>}
-          </button>
           {user ? (
             <button
               onClick={signOut}
@@ -356,10 +343,6 @@ export function Sidebar({ mobileOpen, setMobileOpen, onSignIn }: { mobileOpen?: 
       
       {showBackupManager && (
         <BackupManager onClose={() => setShowBackupManager(false)} />
-      )}
-      
-      {showWebDAVSettings && (
-        <WebDAVSettings onClose={() => setShowWebDAVSettings(false)} />
       )}
     </div>
     </>

@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/StoreContext';
-import { useFirebase } from '../context/FirebaseContext';
+import { useSupabase } from '../context/SupabaseContext';
 import { Edit3, Layers, Users, Maximize2, Minimize2, Menu, ChevronLeft, FileText, MessageSquare, MessageSquareOff, Eye, LogIn, LogOut, Cloud } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { WebDAVSettings } from './WebDAVSettings';
 
 export function TopNav({ setMobileOpen, onSignIn }: { setMobileOpen?: (open: boolean) => void, onSignIn: () => void }) {
   const { state, dispatch } = useStore();
-  const { user, signOut } = useFirebase();
-  const [showWebDAVSettings, setShowWebDAVSettings] = useState(false);
+  const { user, signOut } = useSupabase();
 
   if (state.focusMode) return null;
 
@@ -91,13 +89,6 @@ export function TopNav({ setMobileOpen, onSignIn }: { setMobileOpen?: (open: boo
           </button>
 
           <div className="md:hidden flex items-center">
-            <button
-              onClick={() => setShowWebDAVSettings(true)}
-              className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-md transition-colors mr-1"
-              title="WebDAV Sync"
-            >
-              <Cloud size={18} />
-            </button>
             {user ? (
               <button
                 onClick={signOut}
@@ -137,10 +128,6 @@ export function TopNav({ setMobileOpen, onSignIn }: { setMobileOpen?: (open: boo
           </button>
         ))}
       </div>
-
-      {showWebDAVSettings && (
-        <WebDAVSettings onClose={() => setShowWebDAVSettings(false)} />
-      )}
     </>
   );
 }
